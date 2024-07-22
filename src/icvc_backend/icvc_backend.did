@@ -1,0 +1,446 @@
+type APIError = variant {
+  InternalServerError : text;
+  NotFound : text;
+  Unauthorized : text;
+  MultipleErrors : vec APIError;
+  Forbidden : text;
+  BadRequest : text;
+};
+type Account = record { owner : opt principal; subaccount : opt Subaccount };
+type Action = variant {
+  ManageNervousSystemParameters : NervousSystemParameters;
+  AddGenericNervousSystemFunction : NervousSystemFunction;
+  ManageDappCanisterSettings : ManageDappCanisterSettings;
+  RemoveGenericNervousSystemFunction : nat64;
+  UpgradeSnsToNextVersion : record {};
+  RegisterDappCanisters : RegisterDappCanisters;
+  TransferSnsTreasuryFunds : TransferSnsTreasuryFunds;
+  UpgradeSnsControlledCanister : UpgradeSnsControlledCanister;
+  DeregisterDappCanisters : DeregisterDappCanisters;
+  MintSnsTokens : MintSnsTokens;
+  Unspecified : record {};
+  ManageSnsMetadata : ManageSnsMetadata;
+  ExecuteGenericNervousSystemFunction : ExecuteGenericNervousSystemFunction;
+  ManageLedgerParameters : ManageLedgerParameters;
+  Motion : Motion;
+};
+type ActionAuxiliary = variant {
+  TransferSnsTreasuryFunds : MintSnsTokensActionAuxiliary;
+  MintSnsTokens : MintSnsTokensActionAuxiliary;
+};
+type AssessmentMethod = variant { Grade; None; Vote };
+type Ballot = record {
+  vote : int32;
+  cast_timestamp_seconds : nat64;
+  voting_power : nat64;
+};
+type CanisterConfig = record {
+  max_stable_memory_size : nat64;
+  owner : opt principal;
+  subaccount : opt vec nat8;
+  sns_governance_id : opt principal;
+};
+type CanisterConfigUpdate = record {
+  subaccount : opt vec nat8;
+  sns_governance_id : opt principal;
+};
+type Category = record { id : nat64; active : bool; name : text };
+type CategoryCreate = record { name : text };
+type CheckBoxSubmission = record { id : text; value : bool };
+type Decimal = record { human_readable : opt text };
+type DecimalSubmission = record { id : text; value : float64 };
+type DefaultFollowees = record { followees : vec record { nat64; Followees } };
+type DeregisterDappCanisters = record {
+  canister_ids : vec principal;
+  new_controllers : vec principal;
+};
+type DocumentType = variant {
+  Logo;
+  ProductDemo;
+  CoverPhoto;
+  ExpenditurePlan;
+  PitchDeck;
+  FinancialModels;
+};
+type ExecuteGenericNervousSystemFunction = record {
+  function_id : nat64;
+  payload : vec nat8;
+};
+type Followees = record { followees : vec NeuronId };
+type FunctionType = variant {
+  NativeNervousSystemFunction : record {};
+  GenericNervousSystemFunction : GenericNervousSystemFunction;
+};
+type GenericNervousSystemFunction = record {
+  validator_canister_id : opt principal;
+  target_canister_id : opt principal;
+  validator_method_name : opt text;
+  target_method_name : opt text;
+};
+type GovernanceError = record { error_message : text; error_type : int32 };
+type HttpHeader = record { value : text; name : text };
+type HttpResponse = record {
+  status : nat;
+  body : vec nat8;
+  headers : vec HttpHeader;
+};
+type ICVCConfig = record {
+  grade_max_value : nat32;
+  grade_min_value : nat32;
+  assessment_duration : nat64;
+  open_duration : nat64;
+  projects_update_timer_interval : nat64;
+};
+type ICVCConfigUpdate = record {
+  grade_max_value : opt nat32;
+  grade_min_value : opt nat32;
+  assessment_duration : opt nat64;
+  open_duration : opt nat64;
+  projects_update_timer_interval : opt nat64;
+};
+type InitArgs = record {
+  max_stable_memory_size : nat64;
+  subaccount : opt vec nat8;
+  sns_governance_id : opt principal;
+};
+type Link = record { url : text; kind : text };
+type ListProposalsResponse = record {
+  include_ballots_by_caller : opt bool;
+  proposals : vec ProposalData;
+};
+type ManageDappCanisterSettings = record {
+  freezing_threshold : opt nat64;
+  canister_ids : vec principal;
+  reserved_cycles_limit : opt nat64;
+  log_visibility : opt int32;
+  memory_allocation : opt nat64;
+  compute_allocation : opt nat64;
+};
+type ManageLedgerParameters = record { transfer_fee : opt nat64 };
+type ManageSnsMetadata = record {
+  url : opt text;
+  logo : opt text;
+  name : opt text;
+  description : opt text;
+};
+type MintSnsTokens = record {
+  to_principal : opt principal;
+  to_subaccount : opt Subaccount;
+  memo : opt nat64;
+  amount_e8s : opt nat64;
+};
+type MintSnsTokensActionAuxiliary = record { valuation : opt Valuation };
+type Motion = record { motion_text : text };
+type NervousSystemFunction = record {
+  id : nat64;
+  name : text;
+  description : opt text;
+  function_type : opt FunctionType;
+};
+type NervousSystemParameters = record {
+  default_followees : opt DefaultFollowees;
+  max_dissolve_delay_seconds : opt nat64;
+  max_dissolve_delay_bonus_percentage : opt nat64;
+  max_followees_per_function : opt nat64;
+  neuron_claimer_permissions : opt NeuronPermissionList;
+  neuron_minimum_stake_e8s : opt nat64;
+  max_neuron_age_for_age_bonus : opt nat64;
+  initial_voting_period_seconds : opt nat64;
+  neuron_minimum_dissolve_delay_to_vote_seconds : opt nat64;
+  reject_cost_e8s : opt nat64;
+  max_proposals_to_keep_per_action : opt nat32;
+  wait_for_quiet_deadline_increase_seconds : opt nat64;
+  max_number_of_neurons : opt nat64;
+  transaction_fee_e8s : opt nat64;
+  max_number_of_proposals_with_ballots : opt nat64;
+  max_age_bonus_percentage : opt nat64;
+  neuron_grantable_permissions : opt NeuronPermissionList;
+  voting_rewards_parameters : opt VotingRewardsParameters;
+  maturity_modulation_disabled : opt bool;
+  max_number_of_principals_per_neuron : opt nat64;
+};
+type NeuronId = record { id : vec nat8 };
+type NeuronPermissionList = record { permissions : vec int32 };
+type Percentage = record { basis_points : opt nat64 };
+type Project = record {
+  id : nat64;
+  categories : vec nat64;
+  status : ProjectStatus;
+  title : text;
+  moto : text;
+  description : text;
+  created_at : nat64;
+  current_phase : nat64;
+  user_id : principal;
+  links : vec Link;
+  update_at : opt nat64;
+  update_by : opt principal;
+  team_members : vec TeamMember;
+};
+type ProjectAndStepPhase = record {
+  id : nat64;
+  status : ProjectStatus;
+  title : text;
+  moto : text;
+  description : text;
+  created_at : nat64;
+  current_phase : nat64;
+  user_id : principal;
+  links : vec Link;
+  step_phase : StepPhase;
+  update_at : opt nat64;
+  update_by : opt principal;
+  team_members : vec TeamMember;
+};
+type ProjectCreate = record {
+  categories : vec nat64;
+  title : text;
+  moto : text;
+  description : text;
+  links : vec Link;
+  team_members : vec TeamMember;
+};
+type ProjectStatus = variant { Open; NotFunded; Funded; NotSubmitted };
+type ProjectUpdate = record {
+  categories : vec nat64;
+  title : opt text;
+  moto : opt text;
+  description : opt text;
+  links : opt vec Link;
+  team_members : opt vec TeamMember;
+};
+type Proposal = record {
+  url : text;
+  title : text;
+  action : opt Action;
+  summary : text;
+};
+type ProposalData = record {
+  id : opt ProposalId;
+  payload_text_rendering : opt text;
+  action : nat64;
+  failure_reason : opt GovernanceError;
+  action_auxiliary : opt ActionAuxiliary;
+  ballots : vec record { text; Ballot };
+  minimum_yes_proportion_of_total : opt Percentage;
+  reward_event_round : nat64;
+  failed_timestamp_seconds : nat64;
+  reward_event_end_timestamp_seconds : opt nat64;
+  proposal_creation_timestamp_seconds : nat64;
+  initial_voting_period_seconds : nat64;
+  reject_cost_e8s : nat64;
+  latest_tally : opt Tally;
+  wait_for_quiet_deadline_increase_seconds : nat64;
+  decided_timestamp_seconds : nat64;
+  proposal : opt Proposal;
+  proposer : opt NeuronId;
+  wait_for_quiet_state : opt WaitForQuietState;
+  minimum_yes_proportion_of_exercised : opt Percentage;
+  is_eligible_for_rewards : bool;
+  executed_timestamp_seconds : nat64;
+};
+type ProposalId = record { id : nat64 };
+type ProposalPayload = record { phase_id : nat64; project_id : nat64 };
+type QuestionSubmission = record { id : text; response : opt text };
+type RegisterDappCanisters = record { canister_ids : vec principal };
+type Result = variant { Ok : User; Err : APIError };
+type Result_1 = variant { Ok : Category; Err : APIError };
+type Result_10 = variant { Ok : vec StepGrade; Err : APIError };
+type Result_11 = variant { Ok : CanisterConfig; Err : APIError };
+type Result_12 = variant { Ok : ICVCConfig; Err : APIError };
+type Result_13 = variant { Ok : ProjectAndStepPhase; Err : APIError };
+type Result_14 = variant { Ok : StepPhaseProposal; Err : APIError };
+type Result_15 = variant { Ok : ListProposalsResponse; Err : APIError };
+type Result_16 = variant { Ok : ProposalData; Err : APIError };
+type Result_17 = variant { Ok : Step; Err : APIError };
+type Result_18 = variant { Ok : StepGrade; Err : APIError };
+type Result_19 = variant { Ok : StepPhaseGradeResult; Err : APIError };
+type Result_2 = variant { Ok : Project; Err : APIError };
+type Result_20 = variant { Ok : StepPhase; Err : APIError };
+type Result_21 = variant { Ok : StepPhaseVoteResult; Err : APIError };
+type Result_22 = variant { Ok : bool; Err : APIError };
+type Result_23 = variant { Ok : nat32; Err : APIError };
+type Result_24 = variant { Ok : text; Err : text };
+type Result_3 = variant { Ok : vec UploadUrlResponse; Err : APIError };
+type Result_4 = variant { Ok : vec User; Err : APIError };
+type Result_5 = variant { Ok : vec Category; Err : APIError };
+type Result_6 = variant { Ok : vec Project; Err : APIError };
+type Result_7 = variant { Ok : vec StepPhaseProposal; Err : APIError };
+type Result_8 = variant { Ok : vec StepPhase; Err : APIError };
+type Result_9 = variant { Ok : vec Step; Err : APIError };
+type Step = record {
+  id : nat64;
+  grade_end_date : opt nat64;
+  question_submission : vec QuestionSubmission;
+  update_at : opt nat64;
+  update_by : opt principal;
+  step_phase_id : nat64;
+  checkbox_submission : vec CheckBoxSubmission;
+  decimal_submission : vec DecimalSubmission;
+  project_id : nat64;
+  upload_files : vec UploadFile;
+};
+type StepGrade = record {
+  user_id : principal;
+  step_id : nat64;
+  step_phase_id : nat64;
+  grade : nat32;
+  project_id : nat64;
+};
+type StepGradeResult = record {
+  grade_avg : float64;
+  step_id : nat64;
+  grades_count : nat64;
+};
+type StepPhase = record {
+  id : nat64;
+  end_assessment_date : nat64;
+  status : StepPhaseStatus;
+  start_assessment_date : nat64;
+  submit_date : opt nat64;
+  end_open_date : nat64;
+  start_open_date : nat64;
+  assessment_method : AssessmentMethod;
+  project_id : nat64;
+};
+type StepPhaseGradeResult = record {
+  step_phase_id : nat64;
+  avg_result : float64;
+  steps_grade_results : vec StepGradeResult;
+  project_id : nat64;
+  total_steps_grades_count : nat64;
+};
+type StepPhaseProposal = record {
+  step_phase_id : nat64;
+  proposal_id : nat64;
+  project_id : nat64;
+};
+type StepPhaseStatus = variant {
+  Open;
+  Approved;
+  NotApproved;
+  Submitted;
+  NotSubmitted;
+};
+type StepPhaseVoteResult = record {
+  no : nat64;
+  yes : nat64;
+  total : nat64;
+  step_phase_id : nat64;
+  approved : bool;
+  project_id : nat64;
+};
+type StepUpdate = record {
+  questions_submission : opt vec QuestionSubmission;
+  checkbox_submission : opt vec CheckBoxSubmission;
+  numeric_submission : opt vec DecimalSubmission;
+  upload_files : opt vec UploadFile;
+};
+type Subaccount = record { subaccount : vec nat8 };
+type Tally = record {
+  no : nat64;
+  yes : nat64;
+  total : nat64;
+  timestamp_seconds : nat64;
+};
+type TeamMember = record {
+  previous_experience : text;
+  profile_picture : text;
+  links : vec Link;
+  first_name : text;
+  last_name : text;
+  position : text;
+};
+type Tokens = record { e8s : opt nat64 };
+type TransferSnsTreasuryFunds = record {
+  from_treasury : int32;
+  to_principal : opt principal;
+  to_subaccount : opt Subaccount;
+  memo : opt nat64;
+  amount_e8s : nat64;
+};
+type TransformArgs = record { context : vec nat8; response : HttpResponse };
+type UpgradeSnsControlledCanister = record {
+  new_canister_wasm : vec nat8;
+  mode : opt int32;
+  canister_id : opt principal;
+  canister_upgrade_arg : opt vec nat8;
+};
+type UploadFile = record {
+  document_type : DocumentType;
+  filename : opt text;
+  s3_key : opt text;
+};
+type UploadUrlRequest = record {
+  document_type : DocumentType;
+  filename : text;
+};
+type UploadUrlResponse = record {
+  url : text;
+  document_type : DocumentType;
+  step_id : nat64;
+  step_phase_id : nat64;
+  project_id : nat64;
+};
+type User = record { is_admin : bool; name : text; user_id : principal };
+type UserCreate = record { name : text; user_id : principal };
+type UserUpdate = record { name : text };
+type Valuation = record {
+  token : opt int32;
+  account : opt Account;
+  valuation_factors : opt ValuationFactors;
+  timestamp_seconds : opt nat64;
+};
+type ValuationFactors = record {
+  xdrs_per_icp : opt Decimal;
+  icps_per_token : opt Decimal;
+  tokens : opt Tokens;
+};
+type VotingRewardsParameters = record {
+  final_reward_rate_basis_points : opt nat64;
+  initial_reward_rate_basis_points : opt nat64;
+  reward_rate_transition_duration_seconds : opt nat64;
+  round_duration_seconds : opt nat64;
+};
+type WaitForQuietState = record { current_deadline_timestamp_seconds : nat64 };
+service : (opt InitArgs) -> {
+  addAdmin : (UserCreate) -> (Result);
+  createCategory : (CategoryCreate) -> (Result_1);
+  createProject : (ProjectCreate) -> (Result_2);
+  deleteCategory : (nat64) -> (Result_1);
+  deleteProject : (principal, nat64) -> (Result_2);
+  deleteUser : (principal) -> (Result);
+  execute_project_vote_proposal : (ProposalPayload) -> ();
+  generateUploadUrl : (nat64, nat64, nat64, vec UploadUrlRequest) -> (Result_3);
+  getAllAdmins : () -> (Result_4) query;
+  getAllCategories : () -> (Result_5) query;
+  getAllProjects : (opt nat64, opt nat64) -> (Result_6) query;
+  getAllProposalsByStepPhase : (nat64, nat64) -> (Result_7) query;
+  getAllStepPhaseByProjectId : (nat64) -> (Result_8) query;
+  getAllSteps : (nat64, nat64) -> (Result_9) query;
+  getAllUserStepPhaseStepsGrade : (nat64, nat64) -> (Result_10) query;
+  getCanisterConfig : () -> (Result_11) query;
+  getCategoryById : (nat64) -> (Result_1) query;
+  getICVCConfig : () -> (Result_12) query;
+  getProjectAndStepPhase : (nat64) -> (Result_13) query;
+  getProjectById : (nat64) -> (Result_2) query;
+  getProposalByPhaseId : (nat64, nat64) -> (Result_14) query;
+  getSnsListProposals : (nat32) -> (Result_15) query;
+  getSnsProposalById : (nat64) -> (Result_16) query;
+  getStepById : (nat64, nat64, nat64) -> (Result_17) query;
+  getStepGradepById : (nat64, nat64, nat64) -> (Result_18) query;
+  getStepPhaseAssessmentResult : (nat64, nat64) -> (Result_19) query;
+  getStepPhaseById : (nat64, nat64) -> (Result_20) query;
+  getUserProjects : () -> (Result_6) query;
+  getVoteResultByStepPhaseId : (nat64, nat64) -> (Result_21) query;
+  removeCanisterOwner : () -> (Result_22) query;
+  submitStepGrade : (nat64, nat64, nat64, nat32) -> (Result_23);
+  submitStepPhase : (nat64, nat64) -> (Result_20);
+  transform : (TransformArgs) -> (HttpResponse) query;
+  updateCanisterConfig : (CanisterConfigUpdate) -> (Result_11);
+  updateICVCConfig : (ICVCConfigUpdate) -> (Result_12);
+  updateProject : (nat64, ProjectUpdate) -> (Result_2);
+  updateStep : (nat64, nat64, nat64, StepUpdate) -> (Result_17);
+  updateUser : (principal, UserUpdate) -> (Result);
+  validate_project_vote_proposal : (ProposalPayload) -> (Result_24);
+}

@@ -1,0 +1,26 @@
+{
+  "canisters": {
+    "icvc_backend": {
+      "candid": "src/icvc_backend/icvc_backend.did",
+      "package": "icvc_backend",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "replica": {
+        "subnet_type": "system"
+      },
+      "type": "ephemeral"
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
