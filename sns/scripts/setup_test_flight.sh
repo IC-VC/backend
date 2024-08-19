@@ -214,11 +214,11 @@ if [[ "$MAJORITY" == "false" ]]; then
   dfx identity use default
 fi
 
-subaccount=$(convert_hex_to_subaccount "${DEVELOPER_NEURON_ID}")
-
+#subaccount=$(convert_hex_to_subaccount "${DEVELOPER_NEURON_ID}")
+subaccount=$DEVELOPER_NEURON_ID
 
 #Deploy the icvc_backend and pass the neuronID and the gov canister id as args
-dfx deploy icvc_backend --argument "(opt record{ subaccount = opt $subaccount; sns_governance_id= opt principal \"$governance_id\"; max_stable_memory_size= 0})"
+dfx deploy icvc_backend --argument "(opt record{ subaccount = opt \"$subaccount\"; sns_governance_id= opt principal \"$governance_id\"; max_stable_memory_size= 0})"
 
 if [[ $? -ne 0 ]]; then
   echo "Failed to install icvc_backend canister."

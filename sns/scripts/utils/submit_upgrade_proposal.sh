@@ -6,21 +6,23 @@ SCRIPT_DIR=$(dirname "$SCRIPT")
 cd $SCRIPT_DIR
 
 # Extract the args
-CANISTER_NAME=$1
-VERSION=$2
-TITLE=$3
-URL=$4
-SUMMARY=$5
-UPGRADE_ARG=$6
+TARGET_CANISTER_ID=$1
+ICVC_BACKEND_CANISTER_NAME=$2
+WASM_LOCATION=$3
+VERSION=$4
+TITLE=$5
+URL=$6
+SUMMARY=$7
+UPGRADE_ARG=$8
 
 echo "NETWORK: $NETWORK"
 
-# Get the target canister id
-TARGET_CANISTER_ID=$(dfx -qq canister --network $NETWORK id $CANISTER_NAME)
 
 # Build the WASM path
-WASM_FILE=$CANISTER_NAME.wasm.gz
-WASM_PATH=$WASM_FOLDER/$WASM_FILE
+WASM_FILE=$ICVC_BACKEND_CANISTER_NAME.wasm.gz
+WASM_PATH=$WASM_LOCATION/$WASM_FILE
+
+WASM_PATH="/home/costa/Documents/icvc/backend/wasm/icvc_backend.wasm.gz"
 
 if [ -z "$UPGRADE_ARG" ]
 then
@@ -35,7 +37,12 @@ then
 fi
 
 # Make the proposal using quill
-quill sns --canister-ids-file ./sns_canister_ids.json --pem-file $PEM_FILE make-upgrade-canister-proposal --canister-upgrade-arg "$UPGRADE_ARG" --title "$TITLE" --url "$URL" --summary "$SUMMARY" --target-canister-id $TARGET_CANISTER_ID --wasm-path $WASM_PATH $PROPOSER_NEURON_ID > msg.json
+quill sns --canister-ids-file ./sns_canister_ids.json \
+    --pem-file $PEM_FILE make-upgrade-canister-proposal \
+    --canister-upgrade-arg "$UPGRADE_ARG" \
+    --title "$TITLE" --url "$URL" --summary "$SUMMARY" \
+    --target-canister-id $TARGET_CANISTER_ID \
+    --wasm-path $WASM_PATH $PROPOSER_NEURON_ID > msg.json
 
 if [ "$NETWORK" = "local" ]; then
     quill --insecure-local-dev-mode send msg.json

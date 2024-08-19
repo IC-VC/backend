@@ -27,3 +27,6 @@ dist/
 *.wasm
 *.pem
 *.gz
+
+*.pub
+github
