@@ -12,20 +12,6 @@ pub fn check_is_owner_or_governance_id(caller_id: Principal) -> Result<(), APIEr
     }
 }
 
-#[allow(dead_code)]
-pub fn check_is_admin(caller_id: Principal) -> Result<(), APIError> {
-    if _check_is_owner(caller_id) {
-        return Ok(());
-    }
-
-    match repository::get_user_by_id(caller_id) {
-        Some(user) if user.is_admin => Ok(()),
-        _ => Err(APIError::Forbidden(
-            "Access denied: You do not have administrative privileges.".to_string(),
-        )),
-    }
-}
-
 pub fn check_is_project_owner_or_admin(
     caller_id: Principal,
     project_id: ProjectId,
