@@ -4,7 +4,7 @@ use serde::Serialize;
 use crate::{ProjectId, StepPhaseId};
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
-pub struct ProposalPayload {
+pub struct ProjectProposalPayload {
     pub project_id: ProjectId,
     pub phase_id: StepPhaseId,
 }

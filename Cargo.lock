@@ -635,6 +635,7 @@ name = "icvc_backend"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "hex",
  "ic-cdk",
  "ic-cdk-timers",
  "ic-stable-structures",

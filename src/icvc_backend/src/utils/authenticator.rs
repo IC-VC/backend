@@ -2,7 +2,7 @@ use candid::Principal;
 
 use crate::{domains::canister_management, repository, APIError, ProjectId};
 
-pub fn check_is_owner(caller_id: Principal) -> Result<(), APIError> {
+pub fn check_is_owner_or_governance_id(caller_id: Principal) -> Result<(), APIError> {
     if _check_is_owner(caller_id) {
         Ok(())
     } else {

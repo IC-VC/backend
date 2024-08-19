@@ -3,7 +3,7 @@
 set -euo pipefail
 
 source "$(dirname "$0")/utils/neuron_utils.sh"
-
+export IC_URL="http://localhost:8000"
 
 
 PROPOSAL_ID="$1"

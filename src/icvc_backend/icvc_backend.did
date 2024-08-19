@@ -35,13 +35,14 @@ type Ballot = record {
   voting_power : nat64;
 };
 type CanisterConfig = record {
-  max_stable_memory_size : nat64;
+  max_stable_memory_size : opt nat64;
   owner : opt principal;
-  subaccount : opt vec nat8;
+  subaccount : opt text;
   sns_governance_id : opt principal;
 };
 type CanisterConfigUpdate = record {
-  subaccount : opt vec nat8;
+  max_stable_memory_size : opt nat64;
+  subaccount : opt text;
   sns_governance_id : opt principal;
 };
 type Category = record { id : nat64; active : bool; name : text };
@@ -100,7 +101,7 @@ type ICVCConfigUpdate = record {
 };
 type InitArgs = record {
   max_stable_memory_size : nat64;
-  subaccount : opt vec nat8;
+  subaccount : opt text;
   sns_governance_id : opt principal;
 };
 type Link = record { url : text; kind : text };
@@ -200,6 +201,7 @@ type ProjectCreate = record {
   links : vec Link;
   team_members : vec TeamMember;
 };
+type ProjectProposalPayload = record { phase_id : nat64; project_id : nat64 };
 type ProjectStatus = variant { Open; NotFunded; Funded; NotSubmitted };
 type ProjectUpdate = record {
   categories : vec nat64;
@@ -240,7 +242,6 @@ type ProposalData = record {
   executed_timestamp_seconds : nat64;
 };
 type ProposalId = record { id : nat64 };
-type ProposalPayload = record { phase_id : nat64; project_id : nat64 };
 type QuestionSubmission = record { id : text; response : opt text };
 type RegisterDappCanisters = record { canister_ids : vec principal };
 type Result = variant { Ok : User; Err : APIError };
@@ -410,7 +411,7 @@ service : (opt InitArgs) -> {
   deleteCategory : (nat64) -> (Result_1);
   deleteProject : (principal, nat64) -> (Result_2);
   deleteUser : (principal) -> (Result);
-  execute_project_vote_proposal : (ProposalPayload) -> ();
+  execute_project_vote_proposal : (ProjectProposalPayload) -> ();
   generateUploadUrl : (nat64, nat64, nat64, vec UploadUrlRequest) -> (Result_3);
   getAllAdmins : () -> (Result_4) query;
   getAllCategories : () -> (Result_5) query;
@@ -433,14 +434,15 @@ service : (opt InitArgs) -> {
   getStepPhaseById : (nat64, nat64) -> (Result_20) query;
   getUserProjects : () -> (Result_6) query;
   getVoteResultByStepPhaseId : (nat64, nat64) -> (Result_21) query;
-  removeCanisterOwner : () -> (Result_22) query;
+  setOwner : (principal) -> (Result_22);
   submitStepGrade : (nat64, nat64, nat64, nat32) -> (Result_23);
   submitStepPhase : (nat64, nat64) -> (Result_20);
   transform : (TransformArgs) -> (HttpResponse) query;
-  updateCanisterConfig : (CanisterConfigUpdate) -> (Result_11);
   updateICVCConfig : (ICVCConfigUpdate) -> (Result_12);
   updateProject : (nat64, ProjectUpdate) -> (Result_2);
   updateStep : (nat64, nat64, nat64, StepUpdate) -> (Result_17);
   updateUser : (principal, UserUpdate) -> (Result);
-  validate_project_vote_proposal : (ProposalPayload) -> (Result_24);
+  update_canister_config : (CanisterConfigUpdate) -> (Result_11);
+  validate_project_vote_proposal : (ProjectProposalPayload) -> (Result_24);
+  validate_update_canister_config : (CanisterConfigUpdate) -> (Result_24);
 }

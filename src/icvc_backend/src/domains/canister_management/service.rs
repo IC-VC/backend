@@ -1,9 +1,27 @@
+use candid::Principal;
+
 use crate::{repository, APIError};
 
 use super::{types::CanisterConfigUpdate, types_storage::CanisterConfig};
 
 pub fn get_canister_config() -> CanisterConfig {
     repository::get_canister_config()
+}
+
+pub fn validate_update_canister_config(canister_config_update: CanisterConfigUpdate) -> Result<String, String>  {
+    let current_canister_config = repository::get_canister_config();
+    
+    match repository::update_canister_config(canister_config_update.clone()){
+        Ok(_) =>  {
+            let _ = repository::set_canister_config(current_canister_config.clone());
+            Ok(format!(
+                "Update canister config is valid for votting with values: {:?}", canister_config_update
+            ))
+        },
+        _ =>  Err(format!(
+            "Unable to validate proposal: update canister config with values: {:?}", canister_config_update
+        ))
+    }
 }
 
 pub fn update_canister_config(
@@ -17,9 +35,9 @@ pub fn update_canister_config(
     }
 }
 
-pub fn remove_canister_owner() -> Result<bool, APIError> {
-    match repository::remove_canister_owner() {
-        Ok(config) => Ok(config.owner == None),
+pub fn set_owner(owner: Principal) -> Result<bool, APIError> {
+    match repository::set_owner(owner) {
+        Ok(_) => Ok(true),
         Err(_) => Err(APIError::InternalServerError(
             "Unable to remove owner".to_string(),
         )),

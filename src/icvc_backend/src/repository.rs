@@ -139,17 +139,25 @@ pub fn update_canister_config(
         if let Some(subaccount) = update_canister_config.subaccount {
             config_model.subaccount = Some(subaccount);
         };
+        if let Some(max_stable_memory_size) = update_canister_config.max_stable_memory_size {
+            config_model.max_stable_memory_size = Some(max_stable_memory_size);
+        };
 
-        cell.borrow_mut().set(config_model)
+        cell.borrow_mut().set(config_model.clone())?;
+        Ok(config_model)
     })
 }
 
-pub fn remove_canister_owner() -> Result<CanisterConfig, ic_stable_structures::cell::ValueError> {
+pub fn set_owner(owner: Principal) -> Result<CanisterConfig, ic_stable_structures::cell::ValueError> {
     CANISTER_CONFIG.with(|cell| {
         let mut config_model = cell.borrow().get().clone();
-        config_model.owner = None;
 
-        cell.borrow_mut().set(config_model)
+        if config_model.owner.is_some() {
+            config_model.owner = Some(owner);
+        };
+
+        cell.borrow_mut().set(config_model.clone())?;
+        Ok(config_model)
     })
 }
 

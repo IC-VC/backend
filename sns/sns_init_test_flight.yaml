@@ -328,7 +328,7 @@ Distribution:
     #    memo: 0
     #    dissolve_delay: 2 years
     #    vesting_period: 4 years
-    Neurons:
+    Neurons:    
     InitialBalances:
         # The initial SNS token balance of the SNS Governance canister is known
         # as the treasury. This is initialized in a special sub-account, as the
