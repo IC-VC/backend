@@ -15,11 +15,12 @@ if [ "$NETWORK" = "ic" ]; then
   # Extract canister IDs from the sns root canister
   RESPONSE=$(dfx canister --network ic call nuywj-oaaaa-aaaaq-aadta-cai list_sns_canisters '(record {} )')
   
-  GOVERNANCE_ID=$(echo "$RESPONSE" | grep -oP '(?<=governance = opt principal ")(.*?)(?=")')
-  INDEX_ID=$(echo "$RESPONSE" | grep -oP '(?<=index = opt principal ")(.*?)(?=")')
-  LEDGER_ID=$(echo "$RESPONSE" | grep -oP '(?<=ledger = opt principal ")(.*?)(?=")')
-  ROOT_ID=$(echo "$RESPONSE" | grep -oP '(?<=root = opt principal ")(.*?)(?=")')
-  SWAP_ID=$(echo "$RESPONSE" | grep -oP '(?<=swap = opt principal ")(.*?)(?=")')
+GOVERNANCE_ID=$(echo "$RESPONSE" | sed -n 's/.*governance = opt principal "\(.*\)".*/\1/p')
+INDEX_ID=$(echo "$RESPONSE" | sed -n 's/.*index = opt principal "\(.*\)".*/\1/p')
+LEDGER_ID=$(echo "$RESPONSE" | sed -n 's/.*ledger = opt principal "\(.*\)".*/\1/p')
+ROOT_ID=$(echo "$RESPONSE" | sed -n 's/.*root = opt principal "\(.*\)".*/\1/p')
+SWAP_ID=$(echo "$RESPONSE" | sed -n 's/.*swap = opt principal "\(.*\)".*/\1/p')
+
 
   cat <<EOF > "$SCRIPT_DIR/sns_canister_ids.json"
 {
