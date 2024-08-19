@@ -3,7 +3,7 @@
 export TARGET_CANISTER_ID="$1"
 
 TITLE="Register generic function on ICVC backend canister"
-
+URL="https://ic-vc.com/"
 SUMMARY="This proposal registers a generic function to vote on projects."
 FUNCTION_ID=4001
 FUNCTION_NAME="Project voting"
