@@ -1,4 +1,4 @@
-use crate::{utils::authenticator::check_is_owner, APIError, User, UserCreate, UserId, UserUpdate};
+use crate::{utils::authenticator::check_is_owner_or_governance_id, APIError, User, UserCreate, UserId, UserUpdate};
 
 use super::service;
 
@@ -14,7 +14,7 @@ use super::service;
 #[ic_cdk::update(name = "addAdmin")]
 pub fn add_admin(user_create: UserCreate) -> Result<User, APIError> {
     let caller_id = ic_cdk::caller();
-    check_is_owner(caller_id)?;
+    check_is_owner_or_governance_id(caller_id)?;
 
     service::add_admin(user_create)
 }
@@ -32,7 +32,7 @@ pub fn add_admin(user_create: UserCreate) -> Result<User, APIError> {
 #[ic_cdk::update(name = "updateUser")]
 pub fn update_user(user_id: UserId, user_update: UserUpdate) -> Result<User, APIError> {
     let caller_id = ic_cdk::caller();
-    check_is_owner(caller_id)?;
+    check_is_owner_or_governance_id(caller_id)?;
 
     service::update_user(user_id, user_update)
 }
@@ -45,7 +45,7 @@ pub fn update_user(user_id: UserId, user_update: UserUpdate) -> Result<User, API
 #[ic_cdk::query(name = "getAllAdmins")]
 pub fn get_all_admins() -> Result<Vec<User>, APIError> {
     let caller_id = ic_cdk::caller();
-    check_is_owner(caller_id)?;
+    check_is_owner_or_governance_id(caller_id)?;
 
     service::get_all_admins()
 }
@@ -62,6 +62,6 @@ pub fn get_all_admins() -> Result<Vec<User>, APIError> {
 #[ic_cdk::update(name = "deleteUser")]
 pub fn delete_user(user_id: UserId) -> Result<User, APIError> {
     let caller_id = ic_cdk::caller();
-    check_is_owner(caller_id)?;
+    check_is_owner_or_governance_id(caller_id)?;
     service::delete_user(user_id)
 }

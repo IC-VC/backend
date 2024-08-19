@@ -171,7 +171,7 @@ fi
 
 echo "Checked ${INIT_CONFIG_FILE} and updated if necessary."
 
-dfx sns deploy-testflight --init-config-file="${INIT_CONFIG_FILE}" --network="${NETWORK}"
+dfx sns deploy-testflight --init-config-file="${INIT_CONFIG_FILE}" --network  "$NETWORK"
 
 # Update all canister IDs
 update_canister_id "sns_governance" "governance_canister_id"

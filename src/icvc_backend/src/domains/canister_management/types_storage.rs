@@ -9,8 +9,8 @@ const CANISTER_CONFIG_MAX_SIZE: u32 = 64000;
 pub struct CanisterConfig {
     pub owner: Option<Principal>,
     pub sns_governance_id: Option<Principal>,
-    pub subaccount: Option<Vec<u8>>,
-    pub max_stable_memory_size: u64,
+    pub subaccount: Option<String>,
+    pub max_stable_memory_size: Option<u64>,
 }
 
 impl Storable for CanisterConfig {
@@ -34,7 +34,7 @@ impl Default for CanisterConfig {
             owner: None,
             sns_governance_id: None,
             subaccount: None,
-            max_stable_memory_size: 0,
+            max_stable_memory_size: Some(0),
         }
     }
 }

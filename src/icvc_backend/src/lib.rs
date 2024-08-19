@@ -17,6 +17,7 @@ use crate::domains::sns_integration::types::*;
 use crate::domains::sns_integration::types_sns_governance::*;
 use crate::domains::step::types::*;
 use crate::domains::user::types::*;
+use candid::Principal;
 
 /// Initializes the canister with the caller as the owner and sets up the default configuration.
 ///
@@ -38,13 +39,13 @@ fn init(init_args: Option<InitArgs>) {
             owner: Some(owner),
             sns_governance_id: None,
             subaccount: None,
-            max_stable_memory_size: 0,
+            max_stable_memory_size: Some(0),
         },
         Some(args) => CanisterConfig {
             owner: Some(owner),
             sns_governance_id: args.sns_governance_id,
             subaccount: args.subaccount,
-            max_stable_memory_size: args.max_stable_memory_size,
+            max_stable_memory_size: Some(args.max_stable_memory_size),
         },
     };
 

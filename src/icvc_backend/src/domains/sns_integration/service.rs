@@ -1,7 +1,7 @@
 use candid::Encode;
 use ic_cdk::api::call::RejectionCode;
 
-use super::{types::ProposalPayload, types_sns_governance::ProposalId};
+use super::{types::ProjectProposalPayload, types_sns_governance::ProposalId};
 use crate::{
     domains::{
         self,
@@ -14,7 +14,7 @@ use crate::{
 };
 use domains::core;
 
-pub fn validate_project_vote_proposal(proposal_payload: ProposalPayload) -> Result<String, String> {
+pub fn validate_project_vote_proposal(proposal_payload: ProjectProposalPayload) -> Result<String, String> {
     let project_id = proposal_payload.project_id;
     let step_phase_id = proposal_payload.phase_id;
 
@@ -39,7 +39,7 @@ pub fn validate_project_vote_proposal(proposal_payload: ProposalPayload) -> Resu
     }
 }
 
-pub async fn execute_project_vote_proposal(proposal_payload: ProposalPayload) {
+pub async fn execute_project_vote_proposal(proposal_payload: ProjectProposalPayload) {
     let project_id = proposal_payload.project_id;
     let step_phase_id = proposal_payload.phase_id;
 
@@ -244,7 +244,7 @@ pub async fn submit_project_vote_proposal(
         None => return Err(APIError::NotFound("Project not found".to_string())),
     };
 
-    let payload = ProposalPayload {
+    let payload = ProjectProposalPayload {
         project_id,
         phase_id,
     };
@@ -301,8 +301,16 @@ async fn make_sns_proposal(proposal: Proposal) -> Result<ProposalId, APIError> {
         }
     };
 
+    let subaccount_bytes = hex_to_bytes(&subaccount).map_err(|err| {
+        APIError::BadRequest(format!(
+            "Failed to decode subaccount from hex string: {}. Error: {}", 
+            subaccount, 
+            err
+        ))
+    })?;
+
     let manage_neuron_command = ManageNeuron {
-        subaccount,
+        subaccount: subaccount_bytes,
         command: Some(Command::MakeProposal(proposal)),
     };
 
@@ -340,4 +348,8 @@ async fn make_sns_proposal(proposal: Proposal) -> Result<ProposalId, APIError> {
             )))
         }
     }
+}
+
+pub fn hex_to_bytes(hex_string: &str) -> Result<Vec<u8>, hex::FromHexError> {
+    hex::decode(hex_string)
 }
