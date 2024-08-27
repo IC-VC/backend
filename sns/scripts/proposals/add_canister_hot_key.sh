@@ -10,7 +10,7 @@ export HOTKEY_PRINCIPAL="$3"
 echo "NETWORK: $NETWORK"
 
 quill sns \
-  --canister-ids-file ./sns_canister_ids.json \
+  --canister-ids-file ./sns/scripts/utils/sns_canister_ids.json \
   --pem-file "$PEM_FILE" \
   neuron-permission \
   --principal "${HOTKEY_PRINCIPAL}" \

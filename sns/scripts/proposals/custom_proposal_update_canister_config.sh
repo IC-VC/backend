@@ -12,9 +12,9 @@ SUMMARY="This proposal alows to update canister configuration."
 FUNCTION_ID=2001
 FUNCTION_NAME="Update canister config"
 FUNCTION_DESC="Update canister configuration"
-TARGET_CANISTER_ID="$TARGET_CANISTER_NAME" 
+TARGET_CANISTER_ID="$TARGET_CANISTER_ID" 
 TARGET_METHOD_NAME="update_canister_config"
-VALIDATOR_CANISTER_ID="$TARGET_CANISTER_NAME"
+VALIDATOR_CANISTER_ID="$TARGET_CANISTER_ID"
 VALIDATOR_METHOD_NAME="validate_update_canister_config"
 
 
