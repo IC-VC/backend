@@ -1,4 +1,6 @@
-use crate::{repository, APIError, User, UserCreate, UserId, UserUpdate};
+use candid::Principal;
+
+use crate::{repository, APIError, User, UserCreate, UserId, UserNeuron, UserNeuronId, UserUpdate};
 
 pub fn add_admin(user_create: UserCreate) -> Result<User, APIError> {
     match repository::save_admin(user_create.clone()) {
@@ -34,4 +36,13 @@ pub fn get_all_admins() -> Result<Vec<User>, APIError> {
     let users = repository::get_all_admin_users();
 
     Ok(users)
+}
+
+pub fn add_user_neuron(neuron_id: UserNeuronId, caller: Principal) -> Result<UserNeuron, APIError> {
+    match repository::add_user_neuron(neuron_id, caller) {
+        Some(neuron) => Ok(neuron),
+        None => Err(APIError::Unauthorized(
+            "Unable to create neuron".to_string(),
+        )),
+    }
 }

@@ -14,11 +14,12 @@ use crate::domains::step::types_storage::{
 };
 use crate::domains::user::types::{User, UserCreate, UserId, UserUpdate};
 
-use crate::domains::user::types_storage::UserModel;
+use crate::domains::user::types_storage::{UserModel, UserNeuronModel};
 use crate::{
     ICVCConfigUpdate, ProjectId, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate,
     StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal,
     StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate,
+    UserNeuron, UserNeuronId,
 };
 
 use candid::Principal;
@@ -42,6 +43,7 @@ const PHASE_GRADE_RESULT_MAP_MEM_ID: MemoryId = MemoryId::new(11);
 const PHASE_PROPOSAL_RESULT_MAP_MEM_ID: MemoryId = MemoryId::new(12);
 const CATEGORY_CONFIG_MAP_MEM_ID: MemoryId = MemoryId::new(13);
 const CATEGORY_ID_COUNTER_MAP_MEM_ID: MemoryId = MemoryId::new(14);
+const USER_NEURON_MAP_MEM_ID: MemoryId = MemoryId::new(15);
 
 type _Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -79,7 +81,7 @@ thread_local! {
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(PROJECT_STEP_MAP_MEM_ID)))
     );
 
-    static STEP_GRADE_MAP: RefCell<StableBTreeMap<(UserId, CompositeKey), u32, _Memory>> = RefCell::new(
+    static STEP_GRADE_MAP: RefCell<StableBTreeMap<(UserNeuronId, CompositeKey), u32, _Memory>> = RefCell::new(
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(STEP_GRADE_MAP_MEM_ID)))
     );
 
@@ -112,8 +114,9 @@ thread_local! {
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(CATEGORY_CONFIG_MAP_MEM_ID)))
     );
 
-
-
+    static USER_NEURONS_MAP: RefCell<StableBTreeMap<UserNeuronId, UserNeuronModel, _Memory>> = RefCell::new(
+        StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(USER_NEURON_MAP_MEM_ID)))
+    );
 }
 
 // Canister config
@@ -148,7 +151,9 @@ pub fn update_canister_config(
     })
 }
 
-pub fn set_owner(owner: Principal) -> Result<CanisterConfig, ic_stable_structures::cell::ValueError> {
+pub fn set_owner(
+    owner: Principal,
+) -> Result<CanisterConfig, ic_stable_structures::cell::ValueError> {
     CANISTER_CONFIG.with(|cell| {
         let mut config_model = cell.borrow().get().clone();
 
@@ -813,7 +818,7 @@ pub fn get_all_steps_by_phase(project_id: ProjectId, step_phase_id: StepPhaseId)
 
 //Grades
 pub fn put_step_grade(
-    user_id: UserId,
+    neuron_id: UserNeuronId,
     project_id: u64,
     step_phase_id: u64,
     step_id: u64,
@@ -822,21 +827,28 @@ pub fn put_step_grade(
     let key = CompositeKey::construct_key(&(project_id, step_phase_id, step_id));
     STEP_GRADE_MAP.with(|map| {
         let mut map = map.borrow_mut();
-        map.insert((user_id, key), grade);
+        map.insert((neuron_id, key), grade);
         Some(grade)
     })
 }
 
 pub fn get_step_grade_by_id(
-    user_id: UserId,
+    neuron_id: UserNeuronId,
     project_id: u64,
     step_phase_id: u64,
     step_id: u64,
 ) -> Option<StepGrade> {
     let key = CompositeKey::construct_key(&(project_id, step_phase_id, step_id));
+
     STEP_GRADE_MAP.with(|map| {
-        map.borrow().get(&(user_id, key)).map(|grade| {
-            convert_model_to_step_grade(user_id, project_id, step_phase_id, step_id, grade)
+        map.borrow().get(&(neuron_id.clone(), key)).map(|grade| {
+            convert_model_to_step_grade(
+                neuron_id.clone(),
+                project_id,
+                step_phase_id,
+                step_id,
+                grade,
+            )
         })
     })
 }
@@ -847,11 +859,18 @@ pub fn get_all_phase_steps_grade(
     phase_id: u64,
 ) -> Vec<StepGrade> {
     STEP_GRADE_MAP.with(|map| {
+        let user_neurons: Vec<UserNeuron> = get_user_neurons(user_id);
+
         map.borrow()
             .iter()
-            .filter(|((user_id_key, composite_key), _)| {
+            .filter(|((user_neuron_id, composite_key), _)| {
                 let (project_id_key, phase_id_key, _) = composite_key.deconstruct_key();
-                user_id == *user_id_key && project_id_key == project_id && phase_id_key == phase_id
+                user_neurons
+                    .iter()
+                    .find(|neuron| neuron.neuron_id == *user_neuron_id)
+                    .is_some()
+                    && project_id_key == project_id
+                    && phase_id_key == phase_id
             })
             .map(|((user_id, composite_key), grade_model)| {
                 let (project_id_key, step_phase_id_key, _step_key) =
@@ -1050,6 +1069,35 @@ pub fn delete_user(user_id: UserId) -> Option<User> {
     })
 }
 
+pub fn add_user_neuron(neuron_id: UserNeuronId, user_id: UserId) -> Option<UserNeuron> {
+    USER_NEURONS_MAP.with(|map| {
+        let mut map = map.borrow_mut();
+
+        if map.contains_key(&neuron_id) {
+            return None;
+        }
+
+        let user_neuron_model = UserNeuronModel {
+            neuron_id: neuron_id.clone(),
+            user_id,
+        };
+
+        map.insert(neuron_id, user_neuron_model.clone());
+
+        return Some(convert_model_to_user_neuron(user_neuron_model));
+    })
+}
+
+pub fn get_user_neurons(user_id: UserId) -> Vec<UserNeuron> {
+    USER_NEURONS_MAP.with(|map| {
+        map.borrow()
+            .iter()
+            .filter(|(_, user_neuron)| user_id.clone() == user_neuron.clone().user_id)
+            .map(|(_, user_neuron)| convert_model_to_user_neuron(user_neuron.clone()))
+            .collect()
+    })
+}
+
 //Helpers
 
 pub fn generate_project_id() -> u64 {
@@ -1172,17 +1220,17 @@ fn convert_model_to_step(
 }
 
 fn convert_model_to_step_grade(
-    user_id: UserId,
+    neuron_id: UserNeuronId,
     project_id: ProjectId,
     step_phase_id: StepPhaseId,
     step_id: StepId,
     grade: u32,
 ) -> StepGrade {
     StepGrade {
-        user_id: user_id,
-        project_id: project_id,
-        step_phase_id: step_phase_id,
-        step_id: step_id,
+        neuron_id,
+        project_id,
+        step_phase_id,
+        step_id,
         grade,
     }
 }
@@ -1233,5 +1281,12 @@ fn convert_model_to_user(user_id: UserId, user_model: UserModel) -> User {
         user_id,
         name: user_model.name,
         is_admin: user_model.is_admin,
+    }
+}
+
+fn convert_model_to_user_neuron(user_neuron_model: UserNeuronModel) -> UserNeuron {
+    UserNeuron {
+        neuron_id: user_neuron_model.neuron_id,
+        user_id: user_neuron_model.user_id,
     }
 }
