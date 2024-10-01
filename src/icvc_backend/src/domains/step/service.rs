@@ -22,6 +22,7 @@ use crate::{
     StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal,
     StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate,
     UploadFile, UploadPreSignedUrlRequest, UploadUrlRequest, UploadUrlResponse, UserId,
+    UserNeuronId,
 };
 
 pub fn create_step_phase(
@@ -253,6 +254,7 @@ pub fn get_all_project_steps(project_id: ProjectId, step_phase_id: StepPhaseId) 
 //Grades
 pub fn submit_step_grade(
     caller_id: UserId,
+    neuron_id: UserNeuronId,
     project_id: ProjectId,
     step_phase_id: StepPhaseId,
     step_id: StepId,
@@ -302,7 +304,7 @@ pub fn submit_step_grade(
         )));
     };
 
-    repository::put_step_grade(caller_id, project_id, step_phase_id, step_id, grade).ok_or(
+    repository::put_step_grade(neuron_id, project_id, step_phase_id, step_id, grade).ok_or(
         APIError::InternalServerError(format!(
             "Unable to update step grade for step_id: {} in project_id: {}, it doesn't exist.",
             step_id, project_id
@@ -311,12 +313,12 @@ pub fn submit_step_grade(
 }
 
 pub fn get_step_grade_by_id(
-    user_id: UserId,
+    nueron_id: UserNeuronId,
     project_id: ProjectId,
     step_phase_id: StepPhaseId,
     step_id: StepId,
 ) -> Result<StepGrade, APIError> {
-    match repository::get_step_grade_by_id(user_id, project_id, step_phase_id, step_id) {
+    match repository::get_step_grade_by_id(nueron_id, project_id, step_phase_id, step_id) {
         Some(step) => Ok(step),
         None => Err(APIError::NotFound(format!(
             "Step with id: {} for project id: {}, not found!",
