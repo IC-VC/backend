@@ -8,8 +8,8 @@ export PROPOSER_NEURON_ID=$2
 
 
 TITLE="Upgrade SNS Root canister to next version"
-URL="https://dashboard.internetcomputer.org/proposal/131807"
-SUMMARY="Upgrade SNS Root canister wasm to the version contained in proposal 131807 (https://dashboard.internetcomputer.org/proposal/131807)."
+URL="https://ic-vc.com/"
+SUMMARY="We propose an upgrade of the SNS canisters to the latest version to ensure optimal performance and security"
 
 echo "Proposal to upgrade SNS Root canister to next version"
 
