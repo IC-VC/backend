@@ -1,6 +1,6 @@
 use crate::{
     utils::authenticator::check_is_owner_or_governance_id, APIError, User, UserCreate, UserId,
-    UserNeuron, UserUpdate,
+    UserNeuron, UserNeuronId, UserUpdate,
 };
 
 use super::service;
@@ -70,6 +70,11 @@ pub fn delete_user(user_id: UserId) -> Result<User, APIError> {
 }
 
 #[ic_cdk::update(name = "addUserNeuron")]
-pub fn add_user_neuron(user_neuron: UserNeuron) -> Result<UserNeuron, APIError> {
-    service::add_user_neuron(user_neuron.neuron_id, ic_cdk::caller())
+pub fn add_user_neuron(user_neuron_id: UserNeuronId) -> Result<UserNeuron, APIError> {
+    service::add_user_neuron(user_neuron_id, ic_cdk::caller())
+}
+
+#[ic_cdk::query(name = "getUserNeurons")]
+pub fn get_user_neurons() -> Result<Vec<UserNeuron>, APIError> {
+    service::get_user_neurons(ic_cdk::caller())
 }

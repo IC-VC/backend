@@ -46,3 +46,9 @@ pub fn add_user_neuron(neuron_id: UserNeuronId, caller: Principal) -> Result<Use
         )),
     }
 }
+
+pub fn get_user_neurons(user_id: UserId) -> Result<Vec<UserNeuron>, APIError> {
+    let users = repository::get_user_neurons(user_id);
+
+    Ok(users)
+}
