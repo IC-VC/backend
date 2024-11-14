@@ -1,8 +1,8 @@
 //! This module defines the controller functions for project steps queries and updates.
 use crate::{
-    utils::authenticator::check_is_project_owner_or_admin, APIError, ProjectId, Step, StepGrade,
-    StepId, StepPhase, StepPhaseGradeResult, StepPhaseId, StepPhaseProposal, StepPhaseVoteResult,
-    StepUpdate, UploadUrlRequest, UploadUrlResponse, UserNeuronId,
+    utils::authenticator::check_is_project_owner_or_admin, APIError, NeuronInternalId, ProjectId,
+    Step, StepGrade, StepId, StepPhase, StepPhaseGradeResult, StepPhaseId, StepPhaseProposal,
+    StepPhaseVoteResult, StepUpdate, UploadUrlRequest, UploadUrlResponse, UserNeuronId,
 };
 
 use super::service;
@@ -143,7 +143,7 @@ pub fn get_all_steps(
 #[ic_cdk::update(name = "submitStepGrade")]
 pub fn submit_step_grade(
     project_id: ProjectId,
-    neuron_id: UserNeuronId,
+    neuron_id: NeuronInternalId,
     step_phase_id: StepPhaseId,
     step_id: StepId,
     grade: u32,
@@ -173,7 +173,7 @@ pub fn submit_step_grade(
 /// * `Result<StepGrade, APIError>` - The requested step grade or an error.
 #[ic_cdk::query(name = "getStepGradepById")]
 pub fn get_step_grade_by_id(
-    neuron_id: UserNeuronId,
+    neuron_id: NeuronInternalId,
     project_id: ProjectId,
     step_phase_id: StepPhaseId,
     step_id: StepId,

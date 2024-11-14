@@ -288,7 +288,7 @@ type StepGrade = record {
   step_phase_id : nat64;
   grade : nat32;
   project_id : nat64;
-  neuron_id : text;
+  neuron_id : nat64;
 };
 type StepGradeResult = record {
   grade_avg : float64;
@@ -387,7 +387,7 @@ type UploadUrlResponse = record {
 };
 type User = record { is_admin : bool; name : text; user_id : principal };
 type UserCreate = record { name : text; user_id : principal };
-type UserNeuron = record { user_id : principal; neuron_id : text };
+type UserNeuron = record { id : nat64; user_id : principal; neuron_id : text };
 type UserUpdate = record { name : text };
 type Valuation = record {
   token : opt int32;
@@ -433,14 +433,14 @@ service : (opt InitArgs) -> {
   getSnsListProposals : (nat32) -> (Result_16) query;
   getSnsProposalById : (nat64) -> (Result_17) query;
   getStepById : (nat64, nat64, nat64) -> (Result_18) query;
-  getStepGradepById : (text, nat64, nat64, nat64) -> (Result_19) query;
+  getStepGradepById : (nat64, nat64, nat64, nat64) -> (Result_19) query;
   getStepPhaseAssessmentResult : (nat64, nat64) -> (Result_20) query;
   getStepPhaseById : (nat64, nat64) -> (Result_21) query;
   getUserNeurons : () -> (Result_22) query;
   getUserProjects : () -> (Result_7) query;
   getVoteResultByStepPhaseId : (nat64, nat64) -> (Result_23) query;
   setOwner : (principal) -> (Result_24);
-  submitStepGrade : (nat64, text, nat64, nat64, nat32) -> (Result_25);
+  submitStepGrade : (nat64, nat64, nat64, nat64, nat32) -> (Result_25);
   submitStepPhase : (nat64, nat64) -> (Result_21);
   transform : (TransformArgs) -> (HttpResponse) query;
   updateICVCConfig : (ICVCConfigUpdate) -> (Result_13);

@@ -1,6 +1,7 @@
 use candid::{CandidType, Deserialize, Principal};
 
 pub type UserId = Principal;
+pub type NeuronInternalId = u64;
 pub type UserNeuronId = String;
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
@@ -23,6 +24,7 @@ pub struct User {
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct UserNeuron {
+    pub id: NeuronInternalId,
     pub user_id: UserId,
     pub neuron_id: UserNeuronId,
 }

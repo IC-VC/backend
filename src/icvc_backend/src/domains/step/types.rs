@@ -3,7 +3,7 @@ use std::fmt;
 use candid::{CandidType, Deserialize};
 use serde::Serialize;
 
-use crate::{DocumentType, ProjectId, UploadFile, UserId, UserNeuronId};
+use crate::{DocumentType, NeuronInternalId, ProjectId, UploadFile, UserId};
 
 pub type StepId = u64;
 pub type StepPhaseId = u64;
@@ -180,7 +180,7 @@ pub struct DecimalSubmission {
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct StepGrade {
-    pub neuron_id: UserNeuronId,
+    pub neuron_id: NeuronInternalId,
     pub project_id: ProjectId,
     pub step_phase_id: StepPhaseId,
     pub step_id: StepId,

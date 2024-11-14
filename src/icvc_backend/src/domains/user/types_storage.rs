@@ -25,6 +25,7 @@ impl Storable for UserModel {
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct UserNeuronModel {
+    pub id: u64,
     pub user_id: UserId,
     pub neuron_id: UserNeuronId,
 }

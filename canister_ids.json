@@ -1,5 +1,21 @@
 {
   "icvc_backend": {
-    "ic": "zwxjr-7aaaa-aaaap-qhodq-cai"
+    "ic": "zwxjr-7aaaa-aaaap-qhodq-cai",
+    "staging": "nk2tx-5iaaa-aaaap-qkidq-cai"
+  },
+  "sns_governance": {
+    "staging": "mhuxz-saaaa-aaaap-qkiea-cai"
+  },
+  "sns_index": {
+    "staging": "mavrn-7yaaa-aaaap-qkieq-cai"
+  },
+  "sns_ledger": {
+    "staging": "mjw2r-jqaaa-aaaap-qkifa-cai"
+  },
+  "sns_root": {
+    "staging": "mox4f-eiaaa-aaaap-qkifq-cai"
+  },
+  "sns_swap": {
+    "staging": "m3qni-faaaa-aaaap-qkiga-cai"
   }
 }
