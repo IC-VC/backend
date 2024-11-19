@@ -70,8 +70,8 @@ pub fn delete_user(user_id: UserId) -> Result<User, APIError> {
 }
 
 #[ic_cdk::update(name = "addUserNeuron")]
-pub fn add_user_neuron(user_neuron_id: UserNeuronId) -> Result<UserNeuron, APIError> {
-    service::add_user_neuron(user_neuron_id, ic_cdk::caller())
+pub async fn add_user_neuron(user_neuron_id: UserNeuronId) -> Result<UserNeuron, APIError> {
+    service::add_user_neuron(user_neuron_id, ic_cdk::caller()).await
 }
 
 #[ic_cdk::query(name = "getUserNeurons")]

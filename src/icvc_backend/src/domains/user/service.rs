@@ -38,10 +38,10 @@ pub fn get_all_admins() -> Result<Vec<User>, APIError> {
     Ok(users)
 }
 
-pub fn add_user_neuron(neuron_id: UserNeuronId, caller: Principal) -> Result<UserNeuron, APIError> {
+pub async fn add_user_neuron(neuron_id: UserNeuronId, caller: Principal) -> Result<UserNeuron, APIError> {
     let next_id = repository::generate_neuron_id();
 
-    match repository::add_user_neuron(next_id, neuron_id, caller) {
+    match repository::add_user_neuron(next_id, neuron_id, caller).await {
         Some(neuron) => Ok(neuron),
         None => Err(APIError::Unauthorized(
             "Unable to create neuron".to_string(),

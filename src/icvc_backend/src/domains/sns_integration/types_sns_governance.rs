@@ -291,12 +291,15 @@ pub struct GetNeuron {
     pub neuron_id: Option<NeuronId>,
 }
 
-/*
 #[derive(CandidType, Serialize, Deserialize, Debug)]
-pub struct GetNeuronResponse {
-    pub result: Option<Result>,
+pub enum Result_ { 
+    Error(GovernanceError), Neuron(Neuron)
 }
-*/
+
+#[derive(CandidType, Serialize, Deserialize, Debug)]
+pub struct GetNeuronResponse { 
+    pub result: Option<Result_> 
+}
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub struct GetProposal {

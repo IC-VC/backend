@@ -1,3 +1,4 @@
+use crate::domains::canister_management;
 use crate::domains::canister_management::types::CanisterConfigUpdate;
 use crate::domains::canister_management::types_storage::CanisterConfig;
 use crate::domains::core::types_storage::CompositeKey;
@@ -16,10 +17,7 @@ use crate::domains::user::types::{User, UserCreate, UserId, UserUpdate};
 
 use crate::domains::user::types_storage::{UserModel, UserNeuronModel};
 use crate::{
-    ICVCConfigUpdate, NeuronInternalId, ProjectId, Step, StepCreate, StepGrade, StepId, StepPhase,
-    StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId,
-    StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult,
-    StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId,
+    GetNeuron, GetNeuronResponse, ICVCConfigUpdate, NeuronId, NeuronInternalId, ProjectId, Result_, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId
 };
 
 use candid::Principal;
@@ -1069,11 +1067,54 @@ pub fn delete_user(user_id: UserId) -> Option<User> {
     })
 }
 
-pub fn add_user_neuron(
+pub async fn add_user_neuron(
     id: NeuronInternalId,
     neuron_id: UserNeuronId,
     user_id: UserId,
 ) -> Option<UserNeuron> {
+    let canister_config: CanisterConfig = canister_management::service::get_canister_config();
+    
+    let sns_governance_id = match canister_config.sns_governance_id {
+        Some(sns_gov_canister_id) => sns_gov_canister_id,
+        None => {
+            return None;
+        }
+    };
+    let arguments = GetNeuron {
+        neuron_id: Some(NeuronId { id: neuron_id.clone().into() }),
+    };
+
+    let result: Result<(GetNeuronResponse,), (ic_cdk::api::call::RejectionCode, String)> =
+        ic_cdk::call(sns_governance_id, "get_neuron", (arguments,)).await;
+
+    let has_permissions = match result {
+        Ok((response,)) => {
+            match response.result {
+                Some(Result_::Neuron(neuron)) => {
+                    neuron.permissions.iter()
+                        .any(|permission| permission.principal
+                        .map_or(false, |owner| owner == user_id))
+                },
+                Some(Result_::Error(error)) => {
+                    ic_cdk::println!("Governance error: {:?}", error);
+                    false
+                },
+                None => {
+                    false
+                }
+            }
+        },
+        Err((code, msg)) => {
+            ic_cdk::println!("Error code: {:?}, message: {:?}", code, msg);
+            false
+        }
+    };
+
+    if !has_permissions {
+        ic_cdk::println!("User does not have permissions to add neuron.");
+        return None;
+    }
+
     USER_NEURONS_MAP.with(|map| {
         let mut map = map.borrow_mut();
 
