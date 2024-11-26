@@ -250,14 +250,9 @@ pub fn init_default_step_phases_config() {
                 },
                 //step 11 - 2-Year Roadmap and Expenditure
                 StepConfigCreateDefault {
-                    questions: vec![
-                        QuestionConfigCreate {
-                            max_num_bytes: 2000,
-                        },
-                        QuestionConfigCreate {
-                            max_num_bytes: 2000,
-                        },
-                    ],
+                    questions: vec![QuestionConfigCreate {
+                        max_num_bytes: 2000,
+                    }],
                     checkboxes: vec![],
                     decimal_values: vec![],
                     required_upload_files: vec![DocumentType::ExpenditurePlan],
