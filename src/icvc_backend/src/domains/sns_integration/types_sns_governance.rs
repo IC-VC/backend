@@ -2,7 +2,7 @@ use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use std::collections::HashMap;
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Account {
     pub owner: Option<Principal>,
     pub subaccount: Option<Subaccount>,
@@ -692,7 +692,7 @@ pub struct StakeMaturityResponse {
     pub staked_maturity_e8s: u64,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Subaccount {
     pub subaccount: Vec<u8>,
 }

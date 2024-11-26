@@ -17,14 +17,17 @@ use crate::domains::user::types::{User, UserCreate, UserId, UserUpdate};
 
 use crate::domains::user::types_storage::{UserModel, UserNeuronModel};
 use crate::{
-    GetNeuron, GetNeuronResponse, ICVCConfigUpdate, NeuronId, NeuronInternalId, ProjectId, Result_, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId
+    APIError, Account, GetAccountTransactionsArgs, GetNeuron, GetNeuronResponse, GetTransactionsResult, ICVCConfigUpdate, NeuronId, NeuronInternalId, ProjectId, Result_, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId
 };
 
 use candid::Principal;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
-use ic_stable_structures::{Cell, DefaultMemoryImpl, Memory, StableBTreeMap};
+use ic_stable_structures::{Cell, DefaultMemoryImpl, Memory, StableBTreeMap, Vec as StableVec};
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
+
+const ICVC_INDEX_CANISTER_ID: &str = "mqvz3-xaaaa-aaaaq-aadva-cai";
+const PROJECT_CREATION_FEE: u64 = 10_000_000_000;
 
 const CANISTER_CONFIG_MEM_ID: MemoryId = MemoryId::new(0);
 const ICVC_CONFIG_MEM_ID: MemoryId = MemoryId::new(1);
@@ -43,6 +46,7 @@ const CATEGORY_CONFIG_MAP_MEM_ID: MemoryId = MemoryId::new(13);
 const CATEGORY_ID_COUNTER_MAP_MEM_ID: MemoryId = MemoryId::new(14);
 const USER_NEURON_MAP_MEM_ID: MemoryId = MemoryId::new(15);
 const USER_NEURON_ID_COUNTER_MEM_ID: MemoryId = MemoryId::new(16);
+const PROJECT_CREATION_TRANSACTIONS_VEC_MEM_ID: MemoryId = MemoryId::new(17);
 
 type _Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -121,6 +125,88 @@ thread_local! {
         Cell::init(MEMORY_MANAGER.with(|m| m.borrow().get(USER_NEURON_ID_COUNTER_MEM_ID)), 0)
             .expect("Failed to initialize the project id counter cell")
     );
+
+    static PROJECT_CREATION_TRANSACTIONS: RefCell<StableVec<u64, _Memory>> = RefCell::new(
+        StableVec::init(MEMORY_MANAGER.with(|m| m.borrow().get(PROJECT_CREATION_TRANSACTIONS_VEC_MEM_ID)))
+            .expect("Failed to initialize the project creation transactions vec")
+    );
+
+}
+
+pub async fn check_transaction(
+    transaction_id: u64,
+) -> Result<String, APIError> {
+    if let Err(_) = PROJECT_CREATION_TRANSACTIONS.with(|cell| {
+        if cell.borrow().iter().find(|&tx_id| tx_id == transaction_id).is_some() {
+            Err(())
+        }
+        else {
+            Ok(())
+        }
+    }) {
+        return Err(APIError::Forbidden("Transaction already used".to_string()))
+    }
+
+    let canister_config: CanisterConfig = canister_management::service::get_canister_config();
+    let sns_governance_id = match canister_config.sns_governance_id {
+        Some(sns_gov_canister_id) => Account {
+            owner: Some(sns_gov_canister_id),
+            subaccount: None,
+        },
+        None => {
+            return Err(APIError::InternalServerError("SNS Governance ID not set".to_string()))
+        }
+    };
+
+    let arguments = GetAccountTransactionsArgs {
+        account: Account {
+            owner: Some(ic_cdk::caller()),
+            subaccount: None,
+        },
+        start: None,
+        max_results: candid::Nat::from(1000_u64),
+    };
+
+    let result: Result<(GetTransactionsResult,), (ic_cdk::api::call::RejectionCode, String)> =
+        ic_cdk::call(Principal::from_text(ICVC_INDEX_CANISTER_ID).unwrap(),
+        "get_account_transactions", (arguments,)).await;
+
+    let transaction = match result {
+        Ok((GetTransactionsResult::Ok(tx_data),)) => {
+            tx_data.transactions
+                .iter()
+                .find(|tx| {
+                    tx.id == transaction_id 
+                    && tx.transaction.transfer
+                        .as_ref()
+                        .map_or(false, |transfer| {
+                            transfer.to == sns_governance_id 
+                            && transfer.amount == candid::Nat::from(PROJECT_CREATION_FEE)
+                        })
+                })
+                .map_or(
+                    Err(APIError::Forbidden("Transaction not found".to_string())),
+                    |_| Ok("Transaction is valid".to_string())
+                )
+        },
+        Ok((GetTransactionsResult::Err(err),)) => {
+            Err(APIError::InternalServerError(format!("Error fetching transactions: {}", err.message)))
+        },
+        Err((_code, msg)) => {
+            Err(APIError::InternalServerError(format!("Error fetching transactions: {}", msg)))
+        }
+    };
+
+    if transaction.is_ok() {
+        if PROJECT_CREATION_TRANSACTIONS.with(|cell| {
+            cell.borrow_mut()
+                .push(&transaction_id)
+                .map_err(|_| ())
+        }).is_err() {
+            return Err(APIError::InternalServerError("Failed to save transaction".to_string()))
+        }
+    }
+    transaction
 }
 
 // Canister config

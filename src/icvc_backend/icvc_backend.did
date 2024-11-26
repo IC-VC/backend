@@ -200,6 +200,7 @@ type ProjectCreate = record {
   description : text;
   links : vec Link;
   team_members : vec TeamMember;
+  transaction_id: nat64;
 };
 type ProjectProposalPayload = record { phase_id : nat64; project_id : nat64 };
 type ProjectStatus = variant { Open; NotFunded; Funded; NotSubmitted };

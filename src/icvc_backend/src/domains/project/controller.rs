@@ -17,10 +17,10 @@ use super::{
 /// # Returns
 /// * `Result<Project, APIError>` - The newly created project or an error.
 #[ic_cdk::update(name = "createProject")]
-pub fn create_project(project_create: ProjectCreate) -> Result<Project, APIError> {
+pub async fn create_project(project_create: ProjectCreate) -> Result<Project, APIError> {
     let caller_id = ic_cdk::caller();
 
-    service::create_project(caller_id, project_create)
+    service::create_project(caller_id, project_create).await
 }
 
 /// Updates an existing project with the specified details.
