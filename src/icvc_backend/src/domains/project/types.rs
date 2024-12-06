@@ -27,11 +27,30 @@ pub struct Account2 {
     pub subaccount: Option<SubAccount>,
 }
 
-#[derive(CandidType, Deserialize, Debug)]
-pub struct GetAccountTransactionsArgs {
-    pub account: Account2,
-    pub start :  Option<TxId>,
-    pub max_results: Nat
+#[derive(CandidType, Deserialize)]
+pub struct TransactionRange { pub transactions: Vec<Transaction> }
+
+candid::define_function!(pub ArchivedRange1Callback : (GetBlocksRequest) -> (
+    TransactionRange,
+  ) query);
+#[derive(CandidType, Deserialize)]
+pub struct ArchivedRange1 {
+  pub callback: ArchivedRange1Callback,
+  pub start: candid::Nat,
+  pub length: candid::Nat,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct GetBlocksRequest { 
+    pub start: candid::Nat, 
+    pub length: candid::Nat 
+}
+#[derive(CandidType, Deserialize)]
+pub struct GetTransactionsResponse {
+  pub first_index: candid::Nat,
+  pub log_length: candid::Nat,
+  pub transactions: Vec<Transaction>,
+  pub archived_transactions: Vec<ArchivedRange1>,
 }
 
 pub type Tokens = candid::Nat;
@@ -84,25 +103,6 @@ pub struct Transaction {
   pub timestamp: u64,
   pub transfer: Option<Transfer>,
 }
-
-#[derive(CandidType, Deserialize)]
-pub struct TransactionWithId {
-  pub id: BlockIndex,
-  pub transaction: Transaction,
-}
-
-#[derive(CandidType, Deserialize)]
-pub struct GetTransactions {
-  pub balance: Tokens,
-  pub transactions: Vec<TransactionWithId>,
-  pub oldest_tx_id: Option<BlockIndex>,
-}
-
-#[derive(CandidType, Deserialize)]
-pub struct GetTransactionsErr { pub message: String }
-
-#[derive(CandidType, Deserialize)]
-pub enum GetTransactionsResult { Ok(GetTransactions), Err(GetTransactionsErr) }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]
 pub struct ProjectUpdate {

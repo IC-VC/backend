@@ -17,7 +17,7 @@ use crate::domains::user::types::{User, UserCreate, UserId, UserUpdate};
 
 use crate::domains::user::types_storage::{UserModel, UserNeuronModel};
 use crate::{
-    APIError, Account2, GetAccountTransactionsArgs, GetNeuron, GetNeuronResponse, GetTransactionsResult, ICVCConfigUpdate, NeuronId, NeuronInternalId, ProjectId, Result_, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId
+    APIError, Account2, GetBlocksRequest, GetNeuron, GetNeuronResponse, GetTransactionsResponse, ICVCConfigUpdate, NeuronId, NeuronInternalId, ProjectId, Result_, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId
 };
 
 use candid::Principal;
@@ -26,7 +26,7 @@ use ic_stable_structures::{Cell, DefaultMemoryImpl, Memory, StableBTreeMap, Vec 
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 
-const ICVC_INDEX_CANISTER_ID: &str = "mqvz3-xaaaa-aaaaq-aadva-cai";
+const ICVC_LEDGER_CANISTER_ID: &str = "m6xut-mqaaa-aaaaq-aadua-cai";
 const PROJECT_CREATION_FEE: u64 = 10_000_000_000;
 
 const CANISTER_CONFIG_MEM_ID: MemoryId = MemoryId::new(0);
@@ -158,39 +158,39 @@ pub async fn check_transaction(
         }
     };
 
-    let arguments = GetAccountTransactionsArgs {
-        account: Account2 {
-            owner: ic_cdk::caller(),
-            subaccount: None,
-        },
-        start: None,
-        max_results: candid::Nat::from(1000_u64),
+    let arguments = GetBlocksRequest {
+        start: candid::Nat::from(transaction_id),
+        length: candid::Nat::from(1 as u64),
     };
 
-    let result: Result<(GetTransactionsResult,), (ic_cdk::api::call::RejectionCode, String)> =
-        ic_cdk::call(Principal::from_text(ICVC_INDEX_CANISTER_ID).unwrap(),
-        "get_account_transactions", (arguments,)).await;
+    let result: Result<(GetTransactionsResponse,), (ic_cdk::api::call::RejectionCode, String)> =
+        ic_cdk::call(Principal::from_text(ICVC_LEDGER_CANISTER_ID).unwrap(),
+        "get_transactions", (arguments,)).await;
 
     let transaction = match result {
-        Ok((GetTransactionsResult::Ok(tx_data),)) => {
-            tx_data.transactions
-                .iter()
-                .find(|tx| {
-                    tx.id == transaction_id 
-                    && tx.transaction.transfer
-                        .as_ref()
-                        .map_or(false, |transfer| {
-                            transfer.to == sns_governance_id 
-                            && transfer.amount >= candid::Nat::from(PROJECT_CREATION_FEE)
-                        })
-                })
-                .map_or(
-                    Err(APIError::Forbidden("Transaction not found".to_string())),
-                    |_| Ok("Transaction is valid".to_string())
-                )
-        },
-        Ok((GetTransactionsResult::Err(err),)) => {
-            Err(APIError::InternalServerError(format!("Error fetching transactions: {}", err.message)))
+        Ok(info) => {
+            let (GetTransactionsResponse { transactions, .. },) = info;
+            if transactions.is_empty() {
+                return Err(APIError::NotFound("Transaction with that ID not found".to_string()))
+            }
+            
+            if let Some(transaction) = &transactions[0].transfer {
+                if transaction.to != sns_governance_id {
+                    return Err(APIError::Forbidden("Transaction not to SNS Governance".to_string()))
+                }
+                if transaction.amount < PROJECT_CREATION_FEE {
+                    return Err(APIError::Forbidden("Transaction amount is less than the project creation fee".to_string()))
+                }
+                if transaction.from != (Account2 {
+                    owner: ic_cdk::caller(),
+                    subaccount: None,
+                }) {
+                    return Err(APIError::Forbidden("Transaction not from the caller".to_string()))
+                }
+                Ok(transaction_id.to_string())
+            } else {
+                Err(APIError::Forbidden("Transaction not a transfer".to_string()))
+            }
         },
         Err((_code, msg)) => {
             Err(APIError::InternalServerError(format!("Error fetching transactions: {}", msg)))
