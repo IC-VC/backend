@@ -1,8 +1,8 @@
 use std::fmt;
+use candid::{CandidType, Deserialize, Nat, Principal};
+use serde::Serialize;
 
-use candid::{CandidType, Deserialize, Nat};
-
-use crate::{domains::step::types::StepPhaseId, Account, StepPhase, UserId};
+use crate::{domains::step::types::StepPhaseId, StepPhase, UserId};
 
 pub type ProjectId = u64;
 
@@ -19,10 +19,17 @@ pub struct ProjectCreate {
 
 type TxId = Nat;
 pub type BlockIndex = candid::Nat;
+pub type SubAccount = serde_bytes::ByteBuf;
+
+#[derive(CandidType, Serialize, Deserialize, Debug, PartialEq)]
+pub struct Account2 {
+    pub owner: Principal,
+    pub subaccount: Option<SubAccount>,
+}
 
 #[derive(CandidType, Deserialize, Debug)]
 pub struct GetAccountTransactionsArgs {
-    pub account: Account,
+    pub account: Account2,
     pub start :  Option<TxId>,
     pub max_results: Nat
 }
@@ -30,16 +37,16 @@ pub struct GetAccountTransactionsArgs {
 pub type Tokens = candid::Nat;
 #[derive(CandidType, Deserialize)]
 pub struct Burn {
-  pub from: Account,
+  pub from: Account2,
   pub memo: Option<Vec<u8>>,
   pub created_at_time: Option<u64>,
   pub amount: candid::Nat,
-  pub spender: Option<Account>,
+  pub spender: Option<Account2>,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct Mint {
-  pub to: Account,
+  pub to: Account2,
   pub memo: Option<Vec<u8>>,
   pub created_at_time: Option<u64>,
   pub amount: candid::Nat,
@@ -48,24 +55,24 @@ pub struct Mint {
 #[derive(CandidType, Deserialize)]
 pub struct Approve {
   pub fee: Option<candid::Nat>,
-  pub from: Account,
+  pub from: Account2,
   pub memo: Option<Vec<u8>>,
   pub created_at_time: Option<u64>,
   pub amount: candid::Nat,
   pub expected_allowance: Option<candid::Nat>,
   pub expires_at: Option<u64>,
-  pub spender: Account,
+  pub spender: Account2,
 }
 
 #[derive(CandidType, Deserialize)]
 pub struct Transfer {
-  pub to: Account,
+  pub to: Account2,
   pub fee: Option<candid::Nat>,
-  pub from: Account,
+  pub from: Account2,
   pub memo: Option<Vec<u8>>,
   pub created_at_time: Option<u64>,
   pub amount: candid::Nat,
-  pub spender: Option<Account>,
+  pub spender: Option<Account2>,
 }
 
 #[derive(CandidType, Deserialize)]

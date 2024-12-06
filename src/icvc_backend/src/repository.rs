@@ -17,7 +17,7 @@ use crate::domains::user::types::{User, UserCreate, UserId, UserUpdate};
 
 use crate::domains::user::types_storage::{UserModel, UserNeuronModel};
 use crate::{
-    APIError, Account, GetAccountTransactionsArgs, GetNeuron, GetNeuronResponse, GetTransactionsResult, ICVCConfigUpdate, NeuronId, NeuronInternalId, ProjectId, Result_, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId
+    APIError, Account2, GetAccountTransactionsArgs, GetNeuron, GetNeuronResponse, GetTransactionsResult, ICVCConfigUpdate, NeuronId, NeuronInternalId, ProjectId, Result_, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId
 };
 
 use candid::Principal;
@@ -149,8 +149,8 @@ pub async fn check_transaction(
 
     let canister_config: CanisterConfig = canister_management::service::get_canister_config();
     let sns_governance_id = match canister_config.sns_governance_id {
-        Some(sns_gov_canister_id) => Account {
-            owner: Some(sns_gov_canister_id),
+        Some(sns_gov_canister_id) => Account2 {
+            owner: sns_gov_canister_id,
             subaccount: None,
         },
         None => {
@@ -159,8 +159,8 @@ pub async fn check_transaction(
     };
 
     let arguments = GetAccountTransactionsArgs {
-        account: Account {
-            owner: Some(ic_cdk::caller()),
+        account: Account2 {
+            owner: ic_cdk::caller(),
             subaccount: None,
         },
         start: None,
@@ -181,7 +181,7 @@ pub async fn check_transaction(
                         .as_ref()
                         .map_or(false, |transfer| {
                             transfer.to == sns_governance_id 
-                            && transfer.amount == candid::Nat::from(PROJECT_CREATION_FEE)
+                            && transfer.amount >= candid::Nat::from(PROJECT_CREATION_FEE)
                         })
                 })
                 .map_or(
