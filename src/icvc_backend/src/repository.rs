@@ -150,10 +150,8 @@ pub async fn check_transaction(
 
     let canister_config: CanisterConfig = canister_management::service::get_canister_config();
 
-    let comission_wallet_id: Acccount2 = {
-        owner: Principal::from_text(
-            "az453-x2sxf-wewfl-pszbd-4u4rh-yq7nk-hxkrp-6yvo3-mnlce-zjvsg-qae",
-        )
+    let comission_wallet_id = Account2 {
+        owner: Principal::from_text(COMISSION_WALLET)
         .unwrap(),
         subaccount: None,
     };
