@@ -156,7 +156,7 @@ pub async fn check_transaction(
         )
         .unwrap(),
         subaccount: None,
-    }
+    };
 
     let arguments = GetBlocksRequest {
         start: candid::Nat::from(transaction_id),
