@@ -28,6 +28,7 @@ use std::cell::RefCell;
 
 const ICVC_LEDGER_CANISTER_ID: &str = "m6xut-mqaaa-aaaaq-aadua-cai";
 const PROJECT_CREATION_FEE: u64 = 10_000_000_000;
+const COMISSION_WALLET: &str = "az453-x2sxf-wewfl-pszbd-4u4rh-yq7nk-hxkrp-6yvo3-mnlce-zjvsg-qae";
 
 const CANISTER_CONFIG_MEM_ID: MemoryId = MemoryId::new(0);
 const ICVC_CONFIG_MEM_ID: MemoryId = MemoryId::new(1);
@@ -148,15 +149,14 @@ pub async fn check_transaction(
     }
 
     let canister_config: CanisterConfig = canister_management::service::get_canister_config();
-    let sns_governance_id = match canister_config.sns_governance_id {
-        Some(sns_gov_canister_id) => Account2 {
-            owner: sns_gov_canister_id,
-            subaccount: None,
-        },
-        None => {
-            return Err(APIError::InternalServerError("SNS Governance ID not set".to_string()))
-        }
-    };
+
+    let comission_wallet_id: Acccount2 = {
+        owner: Principal::from_text(
+            "az453-x2sxf-wewfl-pszbd-4u4rh-yq7nk-hxkrp-6yvo3-mnlce-zjvsg-qae",
+        )
+        .unwrap(),
+        subaccount: None,
+    }
 
     let arguments = GetBlocksRequest {
         start: candid::Nat::from(transaction_id),
@@ -175,7 +175,7 @@ pub async fn check_transaction(
             }
             
             if let Some(transaction) = &transactions[0].transfer {
-                if transaction.to != sns_governance_id {
+                if transaction.to != comission_wallet_id {
                     return Err(APIError::Forbidden("Transaction not to SNS Governance".to_string()))
                 }
                 if transaction.amount < PROJECT_CREATION_FEE {
