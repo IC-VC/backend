@@ -1164,8 +1164,11 @@ pub async fn add_user_neuron(
             return None;
         }
     };
+
+    let decoded_neuron_id = hex::decode(neuron_id.clone()).expect("Neuron ID decoding failed");
+
     let arguments = GetNeuron {
-        neuron_id: Some(NeuronId { id: neuron_id.clone().into() }),
+        neuron_id: Some(NeuronId { id: decoded_neuron_id }),
     };
 
     let result: Result<(GetNeuronResponse,), (ic_cdk::api::call::RejectionCode, String)> =
