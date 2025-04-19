@@ -1,3 +1,4 @@
+use crate::domains::canister_management;
 use crate::domains::canister_management::types::CanisterConfigUpdate;
 use crate::domains::canister_management::types_storage::CanisterConfig;
 use crate::domains::core::types_storage::CompositeKey;
@@ -14,18 +15,20 @@ use crate::domains::step::types_storage::{
 };
 use crate::domains::user::types::{User, UserCreate, UserId, UserUpdate};
 
-use crate::domains::user::types_storage::UserModel;
+use crate::domains::user::types_storage::{UserModel, UserNeuronModel};
 use crate::{
-    ICVCConfigUpdate, ProjectId, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate,
-    StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal,
-    StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate,
+    APIError, Account2, GetBlocksRequest, GetNeuron, GetNeuronResponse, GetTransactionsResponse, ICVCConfigUpdate, NeuronId, NeuronInternalId, ProjectId, Result_, Step, StepCreate, StepGrade, StepId, StepPhase, StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate, UserNeuron, UserNeuronId
 };
 
 use candid::Principal;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
-use ic_stable_structures::{Cell, DefaultMemoryImpl, Memory, StableBTreeMap};
+use ic_stable_structures::{Cell, DefaultMemoryImpl, Memory, StableBTreeMap, Vec as StableVec};
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
+
+const ICVC_LEDGER_CANISTER_ID: &str = "m6xut-mqaaa-aaaaq-aadua-cai";
+const PROJECT_CREATION_FEE: u64 = 10_000_000_000;
+const COMISSION_WALLET: &str = "az453-x2sxf-wewfl-pszbd-4u4rh-yq7nk-hxkrp-6yvo3-mnlce-zjvsg-qae";
 
 const CANISTER_CONFIG_MEM_ID: MemoryId = MemoryId::new(0);
 const ICVC_CONFIG_MEM_ID: MemoryId = MemoryId::new(1);
@@ -42,6 +45,9 @@ const PHASE_GRADE_RESULT_MAP_MEM_ID: MemoryId = MemoryId::new(11);
 const PHASE_PROPOSAL_RESULT_MAP_MEM_ID: MemoryId = MemoryId::new(12);
 const CATEGORY_CONFIG_MAP_MEM_ID: MemoryId = MemoryId::new(13);
 const CATEGORY_ID_COUNTER_MAP_MEM_ID: MemoryId = MemoryId::new(14);
+const USER_NEURON_MAP_MEM_ID: MemoryId = MemoryId::new(15);
+const USER_NEURON_ID_COUNTER_MEM_ID: MemoryId = MemoryId::new(16);
+const PROJECT_CREATION_TRANSACTIONS_VEC_MEM_ID: MemoryId = MemoryId::new(17);
 
 type _Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -79,7 +85,7 @@ thread_local! {
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(PROJECT_STEP_MAP_MEM_ID)))
     );
 
-    static STEP_GRADE_MAP: RefCell<StableBTreeMap<(UserId, CompositeKey), u32, _Memory>> = RefCell::new(
+    static STEP_GRADE_MAP: RefCell<StableBTreeMap<(NeuronInternalId, CompositeKey), u32, _Memory>> = RefCell::new(
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(STEP_GRADE_MAP_MEM_ID)))
     );
 
@@ -112,8 +118,93 @@ thread_local! {
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(CATEGORY_CONFIG_MAP_MEM_ID)))
     );
 
+    static USER_NEURONS_MAP: RefCell<StableBTreeMap<UserNeuronId, UserNeuronModel, _Memory>> = RefCell::new(
+        StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(USER_NEURON_MAP_MEM_ID)))
+    );
 
+    static NEURONS_ID_COUNTER: RefCell<Cell<u64, _Memory>> = RefCell::new(
+        Cell::init(MEMORY_MANAGER.with(|m| m.borrow().get(USER_NEURON_ID_COUNTER_MEM_ID)), 0)
+            .expect("Failed to initialize the project id counter cell")
+    );
 
+    static PROJECT_CREATION_TRANSACTIONS: RefCell<StableVec<u64, _Memory>> = RefCell::new(
+        StableVec::init(MEMORY_MANAGER.with(|m| m.borrow().get(PROJECT_CREATION_TRANSACTIONS_VEC_MEM_ID)))
+            .expect("Failed to initialize the project creation transactions vec")
+    );
+
+}
+
+pub async fn check_transaction(
+    transaction_id: u64,
+) -> Result<String, APIError> {
+    if let Err(_) = PROJECT_CREATION_TRANSACTIONS.with(|cell| {
+        if cell.borrow().iter().find(|&tx_id| tx_id == transaction_id).is_some() {
+            Err(())
+        }
+        else {
+            Ok(())
+        }
+    }) {
+        return Err(APIError::Forbidden("Transaction already used".to_string()))
+    }
+
+    let canister_config: CanisterConfig = canister_management::service::get_canister_config();
+
+    let comission_wallet_id = Account2 {
+        owner: Principal::from_text(COMISSION_WALLET)
+        .unwrap(),
+        subaccount: None,
+    };
+
+    let arguments = GetBlocksRequest {
+        start: candid::Nat::from(transaction_id),
+        length: candid::Nat::from(1 as u64),
+    };
+
+    let result: Result<(GetTransactionsResponse,), (ic_cdk::api::call::RejectionCode, String)> =
+        ic_cdk::call(Principal::from_text(ICVC_LEDGER_CANISTER_ID).unwrap(),
+        "get_transactions", (arguments,)).await;
+
+    let transaction = match result {
+        Ok(info) => {
+            let (GetTransactionsResponse { transactions, .. },) = info;
+            if transactions.is_empty() {
+                return Err(APIError::NotFound("Transaction with that ID not found".to_string()))
+            }
+            
+            if let Some(transaction) = &transactions[0].transfer {
+                if transaction.to != comission_wallet_id {
+                    return Err(APIError::Forbidden("Transaction not to SNS Governance".to_string()))
+                }
+                if transaction.amount < PROJECT_CREATION_FEE {
+                    return Err(APIError::Forbidden("Transaction amount is less than the project creation fee".to_string()))
+                }
+                if transaction.from != (Account2 {
+                    owner: ic_cdk::caller(),
+                    subaccount: None,
+                }) {
+                    return Err(APIError::Forbidden("Transaction not from the caller".to_string()))
+                }
+                Ok(transaction_id.to_string())
+            } else {
+                Err(APIError::Forbidden("Transaction not a transfer".to_string()))
+            }
+        },
+        Err((_code, msg)) => {
+            Err(APIError::InternalServerError(format!("Error fetching transactions: {}", msg)))
+        }
+    };
+
+    if transaction.is_ok() {
+        if PROJECT_CREATION_TRANSACTIONS.with(|cell| {
+            cell.borrow_mut()
+                .push(&transaction_id)
+                .map_err(|_| ())
+        }).is_err() {
+            return Err(APIError::InternalServerError("Failed to save transaction".to_string()))
+        }
+    }
+    transaction
 }
 
 // Canister config
@@ -148,7 +239,9 @@ pub fn update_canister_config(
     })
 }
 
-pub fn set_owner(owner: Principal) -> Result<CanisterConfig, ic_stable_structures::cell::ValueError> {
+pub fn set_owner(
+    owner: Principal,
+) -> Result<CanisterConfig, ic_stable_structures::cell::ValueError> {
     CANISTER_CONFIG.with(|cell| {
         let mut config_model = cell.borrow().get().clone();
 
@@ -813,7 +906,7 @@ pub fn get_all_steps_by_phase(project_id: ProjectId, step_phase_id: StepPhaseId)
 
 //Grades
 pub fn put_step_grade(
-    user_id: UserId,
+    neuron_id: NeuronInternalId,
     project_id: u64,
     step_phase_id: u64,
     step_id: u64,
@@ -822,21 +915,22 @@ pub fn put_step_grade(
     let key = CompositeKey::construct_key(&(project_id, step_phase_id, step_id));
     STEP_GRADE_MAP.with(|map| {
         let mut map = map.borrow_mut();
-        map.insert((user_id, key), grade);
+        map.insert((neuron_id, key), grade);
         Some(grade)
     })
 }
 
 pub fn get_step_grade_by_id(
-    user_id: UserId,
+    neuron_id: NeuronInternalId,
     project_id: u64,
     step_phase_id: u64,
     step_id: u64,
 ) -> Option<StepGrade> {
     let key = CompositeKey::construct_key(&(project_id, step_phase_id, step_id));
+
     STEP_GRADE_MAP.with(|map| {
-        map.borrow().get(&(user_id, key)).map(|grade| {
-            convert_model_to_step_grade(user_id, project_id, step_phase_id, step_id, grade)
+        map.borrow().get(&(neuron_id.clone(), key)).map(|grade| {
+            convert_model_to_step_grade(neuron_id, project_id, step_phase_id, step_id, grade)
         })
     })
 }
@@ -847,11 +941,18 @@ pub fn get_all_phase_steps_grade(
     phase_id: u64,
 ) -> Vec<StepGrade> {
     STEP_GRADE_MAP.with(|map| {
+        let user_neurons: Vec<UserNeuron> = get_user_neurons(user_id);
+
         map.borrow()
             .iter()
-            .filter(|((user_id_key, composite_key), _)| {
+            .filter(|((user_neuron_id, composite_key), _)| {
                 let (project_id_key, phase_id_key, _) = composite_key.deconstruct_key();
-                user_id == *user_id_key && project_id_key == project_id && phase_id_key == phase_id
+                user_neurons
+                    .iter()
+                    .find(|neuron| neuron.id == *user_neuron_id)
+                    .is_some()
+                    && project_id_key == project_id
+                    && phase_id_key == phase_id
             })
             .map(|((user_id, composite_key), grade_model)| {
                 let (project_id_key, step_phase_id_key, _step_key) =
@@ -1050,6 +1151,86 @@ pub fn delete_user(user_id: UserId) -> Option<User> {
     })
 }
 
+pub async fn add_user_neuron(
+    id: NeuronInternalId,
+    neuron_id: UserNeuronId,
+    user_id: UserId,
+) -> Option<UserNeuron> {
+    let canister_config: CanisterConfig = canister_management::service::get_canister_config();
+    
+    let sns_governance_id = match canister_config.sns_governance_id {
+        Some(sns_gov_canister_id) => sns_gov_canister_id,
+        None => {
+            return None;
+        }
+    };
+
+    let decoded_neuron_id = hex::decode(neuron_id.clone()).expect("Neuron ID decoding failed");
+
+    let arguments = GetNeuron {
+        neuron_id: Some(NeuronId { id: decoded_neuron_id }),
+    };
+
+    let result: Result<(GetNeuronResponse,), (ic_cdk::api::call::RejectionCode, String)> =
+        ic_cdk::call(sns_governance_id, "get_neuron", (arguments,)).await;
+
+    let has_permissions = match result {
+        Ok((response,)) => {
+            match response.result {
+                Some(Result_::Neuron(neuron)) => {
+                    neuron.permissions.iter()
+                        .any(|permission| permission.principal
+                        .map_or(false, |owner| owner == user_id))
+                },
+                Some(Result_::Error(error)) => {
+                    ic_cdk::println!("Governance error: {:?}", error);
+                    false
+                },
+                None => {
+                    false
+                }
+            }
+        },
+        Err((code, msg)) => {
+            ic_cdk::println!("Error code: {:?}, message: {:?}", code, msg);
+            false
+        }
+    };
+
+    if !has_permissions {
+        ic_cdk::println!("User does not have permissions to add neuron.");
+        return None;
+    }
+
+    USER_NEURONS_MAP.with(|map| {
+        let mut map = map.borrow_mut();
+
+        if map.contains_key(&neuron_id) {
+            return None;
+        }
+
+        let user_neuron_model = UserNeuronModel {
+            id,
+            neuron_id: neuron_id.clone(),
+            user_id,
+        };
+
+        map.insert(neuron_id, user_neuron_model.clone());
+
+        return Some(convert_model_to_user_neuron(user_neuron_model));
+    })
+}
+
+pub fn get_user_neurons(user_id: UserId) -> Vec<UserNeuron> {
+    USER_NEURONS_MAP.with(|map| {
+        map.borrow()
+            .iter()
+            .filter(|(_, user_neuron)| user_id.clone() == user_neuron.clone().user_id)
+            .map(|(_, user_neuron)| convert_model_to_user_neuron(user_neuron.clone()))
+            .collect()
+    })
+}
+
 //Helpers
 
 pub fn generate_project_id() -> u64 {
@@ -1067,6 +1248,19 @@ pub fn generate_project_id() -> u64 {
 
 pub fn generate_category_id() -> u64 {
     CATEGORY_ID_COUNTER.with(|counter_cell| {
+        let current_value = *counter_cell.borrow().get();
+        let new_value = current_value + 1;
+        counter_cell
+            .borrow_mut()
+            .set(new_value)
+            .expect("Error incrementing category ID.");
+
+        new_value
+    })
+}
+
+pub fn generate_neuron_id() -> u64 {
+    NEURONS_ID_COUNTER.with(|counter_cell| {
         let current_value = *counter_cell.borrow().get();
         let new_value = current_value + 1;
         counter_cell
@@ -1172,17 +1366,17 @@ fn convert_model_to_step(
 }
 
 fn convert_model_to_step_grade(
-    user_id: UserId,
+    neuron_id: NeuronInternalId,
     project_id: ProjectId,
     step_phase_id: StepPhaseId,
     step_id: StepId,
     grade: u32,
 ) -> StepGrade {
     StepGrade {
-        user_id: user_id,
-        project_id: project_id,
-        step_phase_id: step_phase_id,
-        step_id: step_id,
+        neuron_id,
+        project_id,
+        step_phase_id,
+        step_id,
         grade,
     }
 }
@@ -1233,5 +1427,13 @@ fn convert_model_to_user(user_id: UserId, user_model: UserModel) -> User {
         user_id,
         name: user_model.name,
         is_admin: user_model.is_admin,
+    }
+}
+
+fn convert_model_to_user_neuron(user_neuron_model: UserNeuronModel) -> UserNeuron {
+    UserNeuron {
+        id: user_neuron_model.id,
+        neuron_id: user_neuron_model.neuron_id,
+        user_id: user_neuron_model.user_id,
     }
 }

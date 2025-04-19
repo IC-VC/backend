@@ -2,7 +2,7 @@ use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use std::collections::HashMap;
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Account {
     pub owner: Option<Principal>,
     pub subaccount: Option<Subaccount>,
@@ -291,12 +291,15 @@ pub struct GetNeuron {
     pub neuron_id: Option<NeuronId>,
 }
 
-/*
 #[derive(CandidType, Serialize, Deserialize, Debug)]
-pub struct GetNeuronResponse {
-    pub result: Option<Result>,
+pub enum Result_ { 
+    Error(GovernanceError), Neuron(Neuron)
 }
-*/
+
+#[derive(CandidType, Serialize, Deserialize, Debug)]
+pub struct GetNeuronResponse { 
+    pub result: Option<Result_> 
+}
 
 #[derive(CandidType, Serialize, Deserialize, Debug)]
 pub struct GetProposal {
@@ -689,7 +692,7 @@ pub struct StakeMaturityResponse {
     pub staked_maturity_e8s: u64,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Subaccount {
     pub subaccount: Vec<u8>,
 }

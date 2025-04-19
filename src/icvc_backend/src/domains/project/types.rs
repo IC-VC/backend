@@ -1,6 +1,6 @@
 use std::fmt;
-
-use candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Nat, Principal};
+use serde::Serialize;
 
 use crate::{domains::step::types::StepPhaseId, StepPhase, UserId};
 
@@ -14,6 +14,94 @@ pub struct ProjectCreate {
     pub team_members: Vec<TeamMember>,
     pub links: Vec<Link>,
     pub categories: Vec<u64>,
+    pub transaction_id: u64,
+}
+
+type TxId = Nat;
+pub type BlockIndex = candid::Nat;
+pub type SubAccount = serde_bytes::ByteBuf;
+
+#[derive(CandidType, Serialize, Deserialize, Debug, PartialEq)]
+pub struct Account2 {
+    pub owner: Principal,
+    pub subaccount: Option<SubAccount>,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct TransactionRange { pub transactions: Vec<Transaction> }
+
+candid::define_function!(pub ArchivedRange1Callback : (GetBlocksRequest) -> (
+    TransactionRange,
+  ) query);
+#[derive(CandidType, Deserialize)]
+pub struct ArchivedRange1 {
+  pub callback: ArchivedRange1Callback,
+  pub start: candid::Nat,
+  pub length: candid::Nat,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct GetBlocksRequest { 
+    pub start: candid::Nat, 
+    pub length: candid::Nat 
+}
+#[derive(CandidType, Deserialize)]
+pub struct GetTransactionsResponse {
+  pub first_index: candid::Nat,
+  pub log_length: candid::Nat,
+  pub transactions: Vec<Transaction>,
+  pub archived_transactions: Vec<ArchivedRange1>,
+}
+
+pub type Tokens = candid::Nat;
+#[derive(CandidType, Deserialize)]
+pub struct Burn {
+  pub from: Account2,
+  pub memo: Option<Vec<u8>>,
+  pub created_at_time: Option<u64>,
+  pub amount: candid::Nat,
+  pub spender: Option<Account2>,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct Mint {
+  pub to: Account2,
+  pub memo: Option<Vec<u8>>,
+  pub created_at_time: Option<u64>,
+  pub amount: candid::Nat,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct Approve {
+  pub fee: Option<candid::Nat>,
+  pub from: Account2,
+  pub memo: Option<Vec<u8>>,
+  pub created_at_time: Option<u64>,
+  pub amount: candid::Nat,
+  pub expected_allowance: Option<candid::Nat>,
+  pub expires_at: Option<u64>,
+  pub spender: Account2,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct Transfer {
+  pub to: Account2,
+  pub fee: Option<candid::Nat>,
+  pub from: Account2,
+  pub memo: Option<Vec<u8>>,
+  pub created_at_time: Option<u64>,
+  pub amount: candid::Nat,
+  pub spender: Option<Account2>,
+}
+
+#[derive(CandidType, Deserialize)]
+pub struct Transaction {
+  pub burn: Option<Burn>,
+  pub kind: String,
+  pub mint: Option<Mint>,
+  pub approve: Option<Approve>,
+  pub timestamp: u64,
+  pub transfer: Option<Transfer>,
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug)]

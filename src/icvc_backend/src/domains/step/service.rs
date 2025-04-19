@@ -17,11 +17,12 @@ use crate::{
         sns_integration,
     },
     repository, APIError, AssessmentMethod, CheckBoxSubmission, Context, DecimalSubmission,
-    DocumentType, MultipleUploadUrlResponse, ProjectId, ProposalData, QuestionSubmission, S3Method,
-    Step, StepCreate, StepGrade, StepGradeResult, StepId, StepPhase, StepPhaseCreate,
-    StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId, StepPhaseProposal,
-    StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult, StepPhaseVoteResultCreate, StepUpdate,
-    UploadFile, UploadPreSignedUrlRequest, UploadUrlRequest, UploadUrlResponse, UserId,
+    DocumentType, MultipleUploadUrlResponse, NeuronInternalId, ProjectId, ProposalData,
+    QuestionSubmission, S3Method, Step, StepCreate, StepGrade, StepGradeResult, StepId, StepPhase,
+    StepPhaseCreate, StepPhaseGradeResult, StepPhaseGradeResultCreate, StepPhaseId,
+    StepPhaseProposal, StepPhaseStatus, StepPhaseUpdate, StepPhaseVoteResult,
+    StepPhaseVoteResultCreate, StepUpdate, UploadFile, UploadPreSignedUrlRequest, UploadUrlRequest,
+    UploadUrlResponse, UserId,
 };
 
 pub fn create_step_phase(
@@ -253,17 +254,12 @@ pub fn get_all_project_steps(project_id: ProjectId, step_phase_id: StepPhaseId) 
 //Grades
 pub fn submit_step_grade(
     caller_id: UserId,
+    neuron_id: NeuronInternalId,
     project_id: ProjectId,
     step_phase_id: StepPhaseId,
     step_id: StepId,
     grade: u32,
 ) -> Result<u32, APIError> {
-    repository::retrieve_project_by_user_id_and_project_id(caller_id, project_id).ok_or(
-        APIError::BadRequest(
-            "As the owner of the project, you are not allowed to vote on it.".to_string(),
-        ),
-    )?;
-
     let step_phase = repository::get_step_phase_by_id(project_id, step_phase_id).ok_or(
         APIError::NotFound(format!(
             "Step phase with id: {} for project id: {} not found.",
@@ -302,7 +298,7 @@ pub fn submit_step_grade(
         )));
     };
 
-    repository::put_step_grade(caller_id, project_id, step_phase_id, step_id, grade).ok_or(
+    repository::put_step_grade(neuron_id, project_id, step_phase_id, step_id, grade).ok_or(
         APIError::InternalServerError(format!(
             "Unable to update step grade for step_id: {} in project_id: {}, it doesn't exist.",
             step_id, project_id
@@ -311,12 +307,12 @@ pub fn submit_step_grade(
 }
 
 pub fn get_step_grade_by_id(
-    user_id: UserId,
+    neuron_id: NeuronInternalId,
     project_id: ProjectId,
     step_phase_id: StepPhaseId,
     step_id: StepId,
 ) -> Result<StepGrade, APIError> {
-    match repository::get_step_grade_by_id(user_id, project_id, step_phase_id, step_id) {
+    match repository::get_step_grade_by_id(neuron_id, project_id, step_phase_id, step_id) {
         Some(step) => Ok(step),
         None => Err(APIError::NotFound(format!(
             "Step with id: {} for project id: {}, not found!",
@@ -904,7 +900,7 @@ pub async fn generate_presigned_urls(
         )),
     };
 
-    match http_request(request, 1_703_154_400).await {
+    match http_request(request, 20_850_851_000).await {
         Ok((response,)) => {
             let str_body = String::from_utf8(response.body).map_err(|e| {
                 APIError::InternalServerError(format!("Response was not valid UTF-8: {}", e))

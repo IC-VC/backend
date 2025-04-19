@@ -6,7 +6,11 @@ use crate::{
 
 use super::types::{Project, ProjectCreate, ProjectId, ProjectUpdate};
 
-pub fn create_project(user_id: UserId, project_create: ProjectCreate) -> Result<Project, APIError> {
+pub async fn create_project(user_id: UserId, project_create: ProjectCreate) -> Result<Project, APIError> {
+    if let Err(error) = repository::check_transaction(project_create.transaction_id).await {
+        return Err(error);
+    }
+    
     let project_id: ProjectId = generate_project_id();
 
     match repository::insert_project(user_id, project_id, project_create) {
